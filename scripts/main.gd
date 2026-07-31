@@ -6,24 +6,24 @@ extends Node2D
 @onready var debug_label: Label = $DebugLabel
 
 @export var debug_note_scene: PackedScene
-@export var show_debug_notes := true
+@export var show_debug_notes: bool = true
 
-const BPM := 148
+const BPM: float = 148
 # 音源の先頭から、最初の拍が始まるまでの時間
-const OFFSET := 0.64
+const OFFSET: float = 0.64
 
 # ノートが出現してから判定位置に到達するまでの時間（秒）
-const APPROACH_TIME := 2.0
+const APPROACH_TIME: float = 2.0
 
 # 判定のタイミングのウィンドウ
-const PERFECT_WINDOW := 0.05
-const GOOD_WINDOW := 0.1
-const MISS_WINDOW := 0.2
+const PERFECT_WINDOW: float = 0.05
+const GOOD_WINDOW: float = 0.1
+const MISS_WINDOW: float = 0.2
 
 # ノートの出現位置と判定位置
-const SPAWN_X := 900.0
-const JUDGE_X := 150.0
-const NOTE_Y := 300.0
+const SPAWN_X: float = 900.0
+const JUDGE_X: float = 150.0
+const NOTE_Y: float = 300.0
 
 # ノートの速度（ピクセル/秒）
 var chart: Array[float] = [
@@ -43,7 +43,7 @@ var next_note_index: int = 0
 var current_note_index: int = 0
 
 # 判定結果の表示用変数
-var last_judgement := "-"
+var last_judgement: String = "-"
 
 func _ready() -> void:
 	judge_line.visible = show_debug_notes
@@ -99,7 +99,7 @@ func spawn_upcoming_notes(song_time: float) -> void:
 			break
 
 		# ノーツの生成
-		var note := debug_note_scene.instantiate() as DebugNote
+		var note : DebugNote = debug_note_scene.instantiate()
 
 		if note == null:
 			push_error("debug_note_sceneのルートにDebugNoteが設定されていません。")
@@ -116,16 +116,17 @@ func spawn_upcoming_notes(song_time: float) -> void:
 # ノーツの位置を更新する関数
 func update_debug_notes(song_time: float) -> void:
 	for note in active_notes:
-		if not is_instance_valid(note): continue
+		if not is_instance_valid(note):
+			continue
 
 		var note_time := beat_to_seconds(note.beat)
 		# ノーツが判定位置に到達するまでの残り時間を計算
-		var time_until_hit := note_time - song_time
+		var time_until_hit: float = note_time - song_time
 
 		# ノーツの位置を更新
 		# ノーツの位置は、出現位置から判定位置までの距離を、残り時間に応じて線形補間することで計算
 		# これにより、ノーツは一定の速度で判定位置に向かって移動する
-		var progress := 1.0 - (time_until_hit / APPROACH_TIME)
+		var progress: float = 1.0 - (time_until_hit / APPROACH_TIME)
 		note.position.x = lerp(SPAWN_X, JUDGE_X, progress)
 
 # プレイヤー入力を次の未判定ノートと比較する
@@ -134,11 +135,11 @@ func judge_input() -> void:
 		last_judgement = "NO NOTE"
 		return
 
-	var song_time := get_song_time()
-	var target_beat := chart[current_note_index]
-	var target_time := beat_to_seconds(target_beat)
-	var difference := song_time - target_time
-	var absolute_difference := absf(difference)
+	var song_time: float = get_song_time()
+	var target_beat: float = chart[current_note_index]
+	var target_time: float = beat_to_seconds(target_beat)
+	var difference: float = song_time - target_time
+	var absolute_difference: float = absf(difference)
 
 	if absolute_difference <= PERFECT_WINDOW:
 		complete_current_note("PERFECT")
@@ -160,8 +161,8 @@ func complete_current_note(judgement: String) -> void:
 # 判定位置を過ぎたノーツをMISS判定として処理する関数
 func process_missed_notes(song_time: float) -> void:
 	while current_note_index < chart.size():
-		var target_beat := chart[current_note_index]
-		var target_time := beat_to_seconds(target_beat)
+		var target_beat: float = chart[current_note_index]
+		var target_time: float = beat_to_seconds(target_beat)
 
 		if song_time <= target_time + MISS_WINDOW:
 			break
@@ -172,11 +173,11 @@ func process_missed_notes(song_time: float) -> void:
 
 # ノーツを削除する関数
 func remove_first_debug_note() -> void:
-	if not show_debug_notes || active_notes.is_empty():
+	if not show_debug_notes or active_notes.is_empty():
 		return
 
 	# ノーツを削除する
-	var note := active_notes.pop_front() as DebugNote
+	var note: DebugNote = active_notes.pop_front()
 	note.queue_free()
 
 # デバッグ用のラベルを更新する関数
