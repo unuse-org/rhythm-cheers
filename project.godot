@@ -15,6 +15,12 @@ run/main_scene="uid://8tvap0hu3bn7"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
 
+[display]
+
+window/size/viewport_width=720
+window/size/viewport_height=1280
+window/stretch/mode="canvas_items"
+
 [input]
 
 hit={

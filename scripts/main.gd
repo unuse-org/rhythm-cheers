@@ -22,9 +22,9 @@ const GOOD_WINDOW: float = 0.1
 const MISS_WINDOW: float = 0.2
 
 # デバッグノートの表示位置
-const SPAWN_X: float = 900.0
-const JUDGE_X: float = 150.0
-const NOTE_Y: float = 300.0
+var spawn_x: float = 0.0
+var judge_x: float = 0.0
+var note_y: float = 0.0
 
 
 enum EventType {
@@ -84,6 +84,8 @@ var last_judgement: String = "-"
 
 
 func _ready() -> void:
+	set_debug_layout()
+
 	judge_line.visible = show_debug_notes
 	debug_notes.visible = show_debug_notes
 
@@ -302,7 +304,7 @@ func spawn_upcoming_debug_notes(song_time: float) -> void:
 			return
 
 		note.beat = beat
-		note.position = Vector2(SPAWN_X, NOTE_Y)
+		note.position = Vector2(spawn_x, note_y)
 
 		debug_notes.add_child(note)
 		active_notes.append(note)
@@ -324,8 +326,8 @@ func update_debug_notes(song_time: float) -> void:
 		)
 
 		note.position.x = lerpf(
-			SPAWN_X,
-			JUDGE_X,
+			spawn_x,
+			judge_x,
 			progress
 		)
 
@@ -360,7 +362,17 @@ func update_debug_label(
 
 # 判定ラインの位置を設定する
 func set_judge_line_position() -> void:
-	judge_line.position = Vector2(
-		JUDGE_X,
-		NOTE_Y
-	)
+		var judge_point := Vector2(judge_x, note_y)
+
+		judge_line.size = Vector2(6.0, 180.0)
+		judge_line.position = judge_point - judge_line.size / 2.0
+
+# デバッグ用のレイアウトを設定する
+func set_debug_layout() -> void:
+	var viewport_size: Vector2 = get_viewport_rect().size
+
+	spawn_x = viewport_size.x + 60.0
+	judge_x = viewport_size.x * 0.18
+	note_y = viewport_size.y * 0.72
+
+	set_judge_line_position()
