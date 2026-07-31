@@ -57,8 +57,8 @@ func _ready() -> void:
 	music_player.play()
 
 func _process(_delta: float) -> void:
-	var song_time := get_song_time()
-	var current_beat := seconds_to_beats(song_time)
+	var song_time : float = get_song_time()
+	var current_beat :float = seconds_to_beats(song_time)
 
 	if show_debug_notes:
 		spawn_upcoming_notes(song_time)
@@ -90,8 +90,8 @@ func spawn_upcoming_notes(song_time: float) -> void:
 		return
 
 	while next_note_index < chart.size():
-		var beat := chart[next_note_index]
-		var note_time := beat_to_seconds(beat)
+		var beat : float = chart[next_note_index]
+		var note_time :float = beat_to_seconds(beat)
 
 		# もしノーツの時間が現在の曲の再生時間よりもAPPROACH_TIME秒以上先であれば、
 		# そのノーツはまだ画面上に表示される必要がないため、生成をスキップ
@@ -119,7 +119,7 @@ func update_debug_notes(song_time: float) -> void:
 		if not is_instance_valid(note):
 			continue
 
-		var note_time := beat_to_seconds(note.beat)
+		var note_time : float = beat_to_seconds(note.beat)
 		# ノーツが判定位置に到達するまでの残り時間を計算
 		var time_until_hit: float = note_time - song_time
 
