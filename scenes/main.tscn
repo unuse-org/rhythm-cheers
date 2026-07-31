@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://8tvap0hu3bn7"]
+
+[ext_resource type="Script" uid="uid://bxmxkl8qoibnh" path="res://scripts/main.gd" id="1_o5qli"]
+[ext_resource type="PackedScene" uid="uid://bcvh1q12nfrkm" path="res://scenes/debug_note.tscn" id="2_0wfyh"]
+[ext_resource type="AudioStream" uid="uid://ce6ofcmq51idr" path="res://assets/audio/test_kanpai_bgm.mp3" id="2_sugp2"]
+
+[node name="Main" type="Node2D" unique_id=1930772962]
+script = ExtResource("1_o5qli")
+debug_note_scene = ExtResource("2_0wfyh")
+
+[node name="MusicPlayer" type="AudioStreamPlayer" parent="." unique_id=288864407]
+stream = ExtResource("2_sugp2")
+
+[node name="JudgeLine" type="ColorRect" parent="." unique_id=1249278990]
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="DebugLabel" type="Label" parent="." unique_id=1997613239]
+offset_right = 40.0
+offset_bottom = 23.0
+
+[node name="DebugNotes" type="Node2D" parent="." unique_id=664874310]

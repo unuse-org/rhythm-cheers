@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://bcvh1q12nfrkm"]
+
+[ext_resource type="Script" uid="uid://c5vty8mo6cavs" path="res://scripts/debug_note.gd" id="1_8yl4w"]
+
+[node name="DebugNote" type="Node2D" unique_id=1246696198]
+script = ExtResource("1_8yl4w")
+
+[node name="Visual" type="ColorRect" parent="." unique_id=300264321]
+offset_right = 40.0
+offset_bottom = 40.0
