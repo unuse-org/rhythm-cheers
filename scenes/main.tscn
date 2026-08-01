@@ -12,8 +12,8 @@ debug_note_scene = ExtResource("2_0wfyh")
 stream = ExtResource("2_sugp2")
 
 [node name="JudgeLine" type="ColorRect" parent="." unique_id=1249278990]
-offset_right = 40.0
-offset_bottom = 40.0
+offset_right = 6.0
+offset_bottom = 180.0
 
 [node name="DebugLabel" type="Label" parent="." unique_id=1997613239]
 offset_right = 40.0
