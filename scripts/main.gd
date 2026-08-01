@@ -8,7 +8,7 @@ extends Node2D
 @export var debug_note_scene: PackedScene
 @export var show_debug_notes: bool = true
 
-const BPM: float = 148.0
+const BPM: float = 50.0
 
 # 音源の先頭から、最初の拍が始まるまでの時間
 const OFFSET: float = 0.64
@@ -28,11 +28,14 @@ var note_y: float = 0.0
 
 
 enum EventType {
-	PREPARE,
-	JUDGE,
+	EXPECT_INPUT,
 	RETURN_NORMAL,
 }
 
+enum InputType {
+	PREPARE,
+	CHEERS,
+}
 
 enum CharacterState {
 	NORMAL,
@@ -46,26 +49,30 @@ enum CharacterState {
 var chart: Array[Dictionary] = [
 	{
 		"beat": 1.0,
-		"type": EventType.PREPARE,
+		"type": EventType.EXPECT_INPUT,
+		"input_type": InputType.PREPARE,
 	},
 	{
 		"beat": 2.0,
-		"type": EventType.JUDGE,
+		"type": EventType.EXPECT_INPUT,
+		"input_type": InputType.CHEERS,
 	},
 	{
 		"beat": 5.0,
-		"type": EventType.PREPARE,
+		"type": EventType.EXPECT_INPUT,
+		"input_type": InputType.PREPARE,
 	},
 	{
 		"beat": 6.0,
-		"type": EventType.JUDGE,
+		"type": EventType.EXPECT_INPUT,
+		"input_type": InputType.CHEERS,
 	},
 ]
 
 
 # デバッグノート
 var active_notes: Array[DebugNote] = []
-var debug_judge_events: Array[Dictionary] = []
+var debug_input_events: Array[Dictionary] = []
 var next_debug_note_index: int = 0
 
 # イベント処理
@@ -77,7 +84,8 @@ var state_change_generation: int = 0
 
 # 入力判定
 var input_expected: bool = false
-var current_judge_beat: float = 0.0
+var current_input_beat: float = 0.0
+var expected_input_type: InputType = InputType.PREPARE
 
 # 最後の判定結果
 var last_judgement: String = "-"
@@ -90,7 +98,7 @@ func _ready() -> void:
 	debug_notes.visible = show_debug_notes
 
 	set_judge_line_position()
-	initialize_debug_judge_events()
+	initialize_debug_input_events()
 
 	if debug_note_scene == null and show_debug_notes:
 		push_error("debug_note_sceneが設定されていません。")
@@ -113,8 +121,11 @@ func _process(_delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("hit"):
-		judge_input()
+	if event.is_action_pressed("prepare_input"):
+			receive_sensor_input(InputType.PREPARE)
+
+	elif event.is_action_pressed("cheers_input"):
+		receive_sensor_input(InputType.CHEERS)
 
 
 # 曲の現在の再生位置を取得する
@@ -133,14 +144,14 @@ func seconds_to_beats(seconds: float) -> float:
 
 
 # JUDGEイベントをデバッグノート用の配列へ抽出する
-func initialize_debug_judge_events() -> void:
-	debug_judge_events.clear()
+func initialize_debug_input_events() -> void:
+	debug_input_events.clear()
 
 	for chart_event: Dictionary in chart:
 		var event_type: EventType = chart_event["type"]
 
-		if event_type == EventType.JUDGE:
-			debug_judge_events.append(chart_event)
+		if event_type == EventType.EXPECT_INPUT:
+			debug_input_events.append(chart_event)
 
 
 # 譜面イベントを時刻に従って実行する
@@ -153,9 +164,9 @@ func process_chart_events(song_time: float) -> void:
 
 		var execution_time: float = event_time
 
-		# JUDGEイベントは早めの入力も受け付ける必要があるため、
+		# EXPECT_INPUTイベントは早めの入力も受け付ける必要があるため、
 		# 判定時刻よりMISS_WINDOW秒前に入力受付を開始する
-		if event_type == EventType.JUDGE:
+		if event_type == EventType.EXPECT_INPUT:
 			execution_time -= MISS_WINDOW
 
 		if song_time < execution_time:
@@ -168,35 +179,50 @@ func process_chart_events(song_time: float) -> void:
 # 譜面イベントを実行する
 func execute_chart_event(chart_event: Dictionary) -> void:
 	var event_type: EventType = chart_event["type"]
-	var event_beat: float = chart_event["beat"]
 
 	match event_type:
-		EventType.PREPARE:
-			change_character_state(CharacterState.PREPARE)
+		EventType.EXPECT_INPUT:
+			var event_beat: float = chart_event["beat"]
+			var input_type: InputType = chart_event["input_type"]
 
-		EventType.JUDGE:
-			start_input_window(event_beat)
+			start_input_window(event_beat, input_type)
+
 
 		EventType.RETURN_NORMAL:
 			change_character_state(CharacterState.NORMAL)
 
 
 # 入力受付を開始する
-func start_input_window(event_beat: float) -> void:
-	current_judge_beat = event_beat
+func start_input_window(
+	event_beat: float,
+	input_type: InputType
+) -> void:
+	current_input_beat = event_beat
+	expected_input_type = input_type
 	input_expected = true
 
 	change_character_state(CharacterState.WAIT_INPUT)
 
+# プレイヤー入力を判定する
+func receive_sensor_input(sensor_input_type: InputType) -> void:
+	if not input_expected:
+		last_judgement = "NO INPUT EXPECTED"
+		return
 
-# プレイヤー入力を現在のJUDGEイベントと比較する
-func judge_input() -> void:
+	if sensor_input_type != expected_input_type:
+		last_judgement = "WRONG INPUT TYPE"
+		return
+
+	judge_input_timing()
+
+# 入力タイミングを判定する
+func judge_input_timing() -> void:
 	if not input_expected:
 		last_judgement = "NO INPUT EXPECTED"
 		return
 
 	var song_time: float = get_song_time()
-	var target_time: float = beat_to_seconds(current_judge_beat)
+	var target_time: float = beat_to_seconds(current_input_beat)
 
 	var difference: float = song_time - target_time
 	var absolute_difference: float = absf(difference)
@@ -220,9 +246,13 @@ func complete_input(judgement: String) -> void:
 	input_expected = false
 
 	remove_first_debug_note()
-	change_character_state(CharacterState.CHEERS)
+	match expected_input_type:
+		InputType.PREPARE:
+			change_character_state(CharacterState.PREPARE)
 
-	return_to_normal_after_delay()
+		InputType.CHEERS:
+			change_character_state(CharacterState.CHEERS)
+			return_to_normal_after_delay()
 
 
 # 入力されないまま判定可能時間を過ぎた場合の処理
@@ -230,12 +260,16 @@ func process_missed_input(song_time: float) -> void:
 	if not input_expected:
 		return
 
-	var target_time: float = beat_to_seconds(current_judge_beat)
+	var target_time: float = beat_to_seconds(current_input_beat)
 
 	if song_time <= target_time + MISS_WINDOW:
 		return
 
-	last_judgement = "MISS"
+	last_judgement = (
+		"MISS: %s"
+		% InputType.keys()[expected_input_type]
+	)
+
 	input_expected = false
 
 	remove_first_debug_note()
@@ -282,9 +316,9 @@ func spawn_upcoming_debug_notes(song_time: float) -> void:
 	if debug_note_scene == null:
 		return
 
-	while next_debug_note_index < debug_judge_events.size():
+	while next_debug_note_index < debug_input_events.size():
 		var chart_event: Dictionary = (
-			debug_judge_events[next_debug_note_index]
+			debug_input_events[next_debug_note_index]
 		)
 
 		var beat: float = chart_event["beat"]
@@ -342,6 +376,11 @@ func remove_first_debug_note() -> void:
 	if is_instance_valid(note):
 		note.queue_free()
 
+# 入力期待状態のときに、期待される入力タイプを文字列で返す
+func get_expected_input_type_string() -> String:
+	if not input_expected:
+		return "-"
+	return InputType.keys()[expected_input_type]
 
 # デバッグラベルを更新する
 func update_debug_label(
@@ -356,6 +395,7 @@ func update_debug_label(
 		+ "State: %s\n"
 		% CharacterState.keys()[character_state]
 		+ "Input Expected: %s\n" % input_expected
+		+ "Expected Input Type: %s\n" % get_expected_input_type_string()
 		+ "Last Judgement: %s" % last_judgement
 	)
 
