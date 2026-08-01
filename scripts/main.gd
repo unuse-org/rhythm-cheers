@@ -8,7 +8,7 @@ extends Node2D
 @export var debug_note_scene: PackedScene
 @export var show_debug_notes: bool = true
 
-const BPM: float = 50.0
+const BPM: float = 148.0
 
 # 音源の先頭から、最初の拍が始まるまでの時間
 const OFFSET: float = 0.64
@@ -20,6 +20,10 @@ const APPROACH_TIME: float = 2.0
 const PERFECT_WINDOW: float = 0.05
 const GOOD_WINDOW: float = 0.1
 const MISS_WINDOW: float = 0.2
+
+# デバッグノートの色
+const PREPARE_NOTE_COLOR := Color.YELLOW
+const CHEERS_NOTE_COLOR := Color.RED
 
 # デバッグノートの表示位置
 var spawn_x: float = 0.0
@@ -122,7 +126,7 @@ func _process(_delta: float) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("prepare_input"):
-			receive_sensor_input(InputType.PREPARE)
+		receive_sensor_input(InputType.PREPARE)
 
 	elif event.is_action_pressed("cheers_input"):
 		receive_sensor_input(InputType.CHEERS)
@@ -322,14 +326,13 @@ func spawn_upcoming_debug_notes(song_time: float) -> void:
 		)
 
 		var beat: float = chart_event["beat"]
+		var input_type: InputType = chart_event["input_type"]
 		var note_time: float = beat_to_seconds(beat)
 
 		if song_time < note_time - APPROACH_TIME:
 			break
 
-		var note: DebugNote = (
-			debug_note_scene.instantiate() as DebugNote
-		)
+		var note: DebugNote = debug_note_scene.instantiate() as DebugNote
 
 		if note == null:
 			push_error(
@@ -341,8 +344,16 @@ func spawn_upcoming_debug_notes(song_time: float) -> void:
 		note.position = Vector2(spawn_x, note_y)
 
 		debug_notes.add_child(note)
-		active_notes.append(note)
 
+		match input_type:
+			InputType.PREPARE:
+				note.set_debug_color(PREPARE_NOTE_COLOR)
+
+			InputType.CHEERS:
+				note.set_debug_color(CHEERS_NOTE_COLOR)
+
+
+		active_notes.append(note)
 		next_debug_note_index += 1
 
 
@@ -402,10 +413,10 @@ func update_debug_label(
 
 # 判定ラインの位置を設定する
 func set_judge_line_position() -> void:
-		var judge_point := Vector2(judge_x, note_y)
+	var judge_point := Vector2(judge_x, note_y)
 
-		judge_line.size = Vector2(6.0, 180.0)
-		judge_line.position = judge_point - judge_line.size / 2.0
+	judge_line.size = Vector2(6.0, 180.0)
+	judge_line.position = judge_point - judge_line.size / 2.0
 
 # デバッグ用のレイアウトを設定する
 func set_debug_layout() -> void:
