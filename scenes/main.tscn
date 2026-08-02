@@ -10,7 +10,6 @@ script = ExtResource("1_o5qli")
 debug_note_scene = ExtResource("2_0wfyh")
 
 [node name="MusicPlayer" type="AudioStreamPlayer" parent="." unique_id=288864407]
-stream = ExtResource("2_sugp2")
 
 [node name="JudgeLine" type="ColorRect" parent="." unique_id=1249278990]
 offset_right = 6.0
