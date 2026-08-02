@@ -2,5 +2,5 @@
 
 [ext_resource type="Script" uid="uid://b7f71w7dvcy30" path="res://sensor/tests/serial_connection_test.gd" id="1_gog5k"]
 
-[node name="SerialConnectionTest" type="Node2D" unique_id=558073614]
+[node name="SerialConnectionTest" type="Node" unique_id=648390643]
 script = ExtResource("1_gog5k")
