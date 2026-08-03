@@ -1,0 +1,32 @@
+[gd_scene format=3 uid="uid://8tvap0hu3bn7"]
+
+[ext_resource type="Script" uid="uid://bxmxkl8qoibnh" path="res://main/main.gd" id="1_3wy1v"]
+[ext_resource type="PackedScene" uid="uid://bcvh1q12nfrkm" path="res://debug/debug_note.tscn" id="2_kfbq2"]
+[ext_resource type="AudioStream" uid="uid://ce6ofcmq51idr" path="res://assets/audio/test_kanpai_bgm.mp3" id="3_4dugh"]
+[ext_resource type="Script" uid="uid://df4i81f18vrrq" path="res://sensor/keyboard_sensor_provider.gd" id="4_67ri8"]
+[ext_resource type="Script" uid="uid://bm8fmsjv82evy" path="res://sensor/serial_sensor_provider.gd" id="5_grrlh"]
+
+[node name="Main" type="Node2D" unique_id=1930772962]
+script = ExtResource("1_3wy1v")
+debug_note_scene = ExtResource("2_kfbq2")
+
+[node name="MusicPlayer" type="AudioStreamPlayer" parent="." unique_id=288864407]
+stream = ExtResource("3_4dugh")
+
+[node name="JudgeLine" type="ColorRect" parent="." unique_id=1249278990]
+offset_right = 6.0
+offset_bottom = 180.0
+
+[node name="DebugLabel" type="Label" parent="." unique_id=1997613239]
+offset_right = 40.0
+offset_bottom = 23.0
+
+[node name="DebugNotes" type="Node2D" parent="." unique_id=664874310]
+
+[node name="KeyboardSensorProvider" type="Node" parent="." unique_id=1196853569]
+script = ExtResource("4_67ri8")
+metadata/_custom_type_script = "uid://df4i81f18vrrq"
+
+[node name="SerialSensorProvider" type="Node" parent="." unique_id=1612258852]
+script = ExtResource("5_grrlh")
+metadata/_custom_type_script = "uid://bm8fmsjv82evy"

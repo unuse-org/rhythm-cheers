@@ -1,6 +1,10 @@
 extends Node2D
 
 @onready var music_player: AudioStreamPlayer = $MusicPlayer
+
+@onready var keyboard_sensor_provider: SensorProvider = $KeyboardSensorProvider
+@onready var serial_sensor_provider: SensorProvider = $SerialSensorProvider
+
 @onready var debug_notes: Node2D = $DebugNotes
 @onready var judge_line: ColorRect = $JudgeLine
 @onready var debug_label: Label = $DebugLabel
@@ -8,106 +12,95 @@ extends Node2D
 @export var debug_note_scene: PackedScene
 @export var show_debug_notes: bool = true
 
+enum SensorMode {
+	KEYBOARD,
+	SERIAL,
+}
+
+@export var sensor_mode: SensorMode = SensorMode.KEYBOARD
+
 const BPM: float = 148.0
 
-# 音源の先頭から、最初の拍が始まるまでの時間
+# 音源の先頭から最初の拍が始まるまでの時間
 const OFFSET: float = 0.64
 
-# ノートが出現してから判定位置に到達するまでの時間
+# ノートが出現してから判定位置へ到達するまでの時間
 const APPROACH_TIME: float = 2.0
 
 # 判定ウィンドウ
 const PERFECT_WINDOW: float = 0.05
-const GOOD_WINDOW: float = 0.1
-const MISS_WINDOW: float = 0.2
+const GOOD_WINDOW: float = 0.10
+const MISS_WINDOW: float = 0.20
 
 # デバッグノートの色
-const PREPARE_NOTE_COLOR := Color.YELLOW
-const CHEERS_NOTE_COLOR := Color.RED
-
-# デバッグノートの表示位置
-var spawn_x: float = 0.0
-var judge_x: float = 0.0
-var note_y: float = 0.0
-
-
-enum EventType {
-	EXPECT_INPUT,
-	RETURN_NORMAL,
-}
-
-enum InputType {
-	PREPARE,
-	CHEERS,
-}
-
-enum CharacterState {
-	NORMAL,
-	PREPARE,
-	WAIT_INPUT,
-	CHEERS,
-}
+const PREPARE_NOTE_COLOR: Color = Color.YELLOW
+const CHEERS_NOTE_COLOR: Color = Color.RED
 
 
 # イベント情報を持つ譜面
 var chart: Array[Dictionary] = [
 	{
 		"beat": 1.0,
-		"type": EventType.EXPECT_INPUT,
-		"input_type": InputType.PREPARE,
+		"type": RhythmTypes.EventType.EXPECT_INPUT,
+		"input_type": RhythmTypes.InputType.PREPARE,
 	},
 	{
 		"beat": 2.0,
-		"type": EventType.EXPECT_INPUT,
-		"input_type": InputType.CHEERS,
+		"type": RhythmTypes.EventType.EXPECT_INPUT,
+		"input_type": RhythmTypes.InputType.CHEERS,
 	},
 	{
 		"beat": 5.0,
-		"type": EventType.EXPECT_INPUT,
-		"input_type": InputType.PREPARE,
+		"type": RhythmTypes.EventType.EXPECT_INPUT,
+		"input_type": RhythmTypes.InputType.PREPARE,
 	},
 	{
 		"beat": 6.0,
-		"type": EventType.EXPECT_INPUT,
-		"input_type": InputType.CHEERS,
+		"type": RhythmTypes.EventType.EXPECT_INPUT,
+		"input_type": RhythmTypes.InputType.CHEERS,
 	},
 ]
 
+
+# 有効なセンサーProvider
+var active_sensor_provider: SensorProvider
 
 # デバッグノート
 var active_notes: Array[DebugNote] = []
 var debug_input_events: Array[Dictionary] = []
 var next_debug_note_index: int = 0
 
+# デバッグノートの表示位置
+var spawn_x: float = 0.0
+var judge_x: float = 0.0
+var note_y: float = 0.0
+
 # イベント処理
 var next_event_index: int = 0
 
 # キャラクター状態
-var character_state: CharacterState = CharacterState.NORMAL
+var character_state: RhythmTypes.CharacterState = RhythmTypes.CharacterState.NORMAL
 var state_change_generation: int = 0
 
 # 入力判定
 var input_expected: bool = false
 var current_input_beat: float = 0.0
-var expected_input_type: InputType = InputType.PREPARE
+var expected_input_type: RhythmTypes.InputType = RhythmTypes.InputType.PREPARE
 
 # 最後の判定結果
 var last_judgement: String = "-"
 
 
 func _ready() -> void:
-	set_debug_layout()
-
-	judge_line.visible = show_debug_notes
-	debug_notes.visible = show_debug_notes
-
-	set_judge_line_position()
-	initialize_debug_input_events()
-
-	if debug_note_scene == null and show_debug_notes:
-		push_error("debug_note_sceneが設定されていません。")
+	initialize_sensor_provider()
+	initialize_debug_display()
 
 	music_player.play()
+
+
+func _exit_tree() -> void:
+	if active_sensor_provider != null:
+		active_sensor_provider.stop()
 
 
 func _process(_delta: float) -> void:
@@ -124,12 +117,51 @@ func _process(_delta: float) -> void:
 	update_debug_label(song_time, current_beat)
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("prepare_input"):
-		receive_sensor_input(InputType.PREPARE)
+# 使用するセンサーProviderを選択して初期化する
+func initialize_sensor_provider() -> void:
+	keyboard_sensor_provider.process_mode = Node.PROCESS_MODE_DISABLED
+	serial_sensor_provider.process_mode = Node.PROCESS_MODE_DISABLED
 
-	elif event.is_action_pressed("cheers_input"):
-		receive_sensor_input(InputType.CHEERS)
+	match sensor_mode:
+		SensorMode.KEYBOARD:
+			active_sensor_provider = keyboard_sensor_provider
+
+		SensorMode.SERIAL:
+			active_sensor_provider = serial_sensor_provider
+
+	if active_sensor_provider == null:
+		push_error("SensorProviderを初期化できませんでした。")
+		return
+
+	active_sensor_provider.process_mode = Node.PROCESS_MODE_INHERIT
+
+	active_sensor_provider.input_detected.connect(receive_sensor_input)
+	active_sensor_provider.sensor_error.connect(on_sensor_error)
+	active_sensor_provider.connection_changed.connect(on_sensor_connection_changed)
+
+	active_sensor_provider.start()
+
+
+func on_sensor_error(message: String) -> void:
+	push_error(message)
+
+
+func on_sensor_connection_changed(connected: bool) -> void:
+	print("Sensor connected: ", connected)
+
+
+# デバッグ表示を初期化する
+func initialize_debug_display() -> void:
+	set_debug_layout()
+
+	judge_line.visible = show_debug_notes
+	debug_notes.visible = show_debug_notes
+	debug_label.visible = show_debug_notes
+
+	initialize_debug_input_events()
+
+	if debug_note_scene == null and show_debug_notes:
+		push_error("debug_note_sceneが設定されていません。")
 
 
 # 曲の現在の再生位置を取得する
@@ -147,14 +179,14 @@ func seconds_to_beats(seconds: float) -> float:
 	return (seconds - OFFSET) * BPM / 60.0
 
 
-# JUDGEイベントをデバッグノート用の配列へ抽出する
+# 入力イベントをデバッグノート用の配列へ抽出する
 func initialize_debug_input_events() -> void:
 	debug_input_events.clear()
 
 	for chart_event: Dictionary in chart:
-		var event_type: EventType = chart_event["type"]
+		var event_type: RhythmTypes.EventType = chart_event["type"]
 
-		if event_type == EventType.EXPECT_INPUT:
+		if event_type == RhythmTypes.EventType.EXPECT_INPUT:
 			debug_input_events.append(chart_event)
 
 
@@ -162,15 +194,15 @@ func initialize_debug_input_events() -> void:
 func process_chart_events(song_time: float) -> void:
 	while next_event_index < chart.size():
 		var chart_event: Dictionary = chart[next_event_index]
-		var event_type: EventType = chart_event["type"]
+
+		var event_type: RhythmTypes.EventType = chart_event["type"]
 		var event_beat: float = chart_event["beat"]
 		var event_time: float = beat_to_seconds(event_beat)
 
 		var execution_time: float = event_time
 
-		# EXPECT_INPUTイベントは早めの入力も受け付ける必要があるため、
-		# 判定時刻よりMISS_WINDOW秒前に入力受付を開始する
-		if event_type == EventType.EXPECT_INPUT:
+		# 判定時刻よりMISS_WINDOW秒前から入力受付を開始する
+		if event_type == RhythmTypes.EventType.EXPECT_INPUT:
 			execution_time -= MISS_WINDOW
 
 		if song_time < execution_time:
@@ -182,33 +214,33 @@ func process_chart_events(song_time: float) -> void:
 
 # 譜面イベントを実行する
 func execute_chart_event(chart_event: Dictionary) -> void:
-	var event_type: EventType = chart_event["type"]
+	var event_type: RhythmTypes.EventType = chart_event["type"]
 
 	match event_type:
-		EventType.EXPECT_INPUT:
+		RhythmTypes.EventType.EXPECT_INPUT:
 			var event_beat: float = chart_event["beat"]
-			var input_type: InputType = chart_event["input_type"]
+			var input_type: RhythmTypes.InputType = (chart_event["input_type"])
 
 			start_input_window(event_beat, input_type)
 
-
-		EventType.RETURN_NORMAL:
-			change_character_state(CharacterState.NORMAL)
+		RhythmTypes.EventType.RETURN_NORMAL:
+			change_character_state(RhythmTypes.CharacterState.NORMAL)
 
 
 # 入力受付を開始する
 func start_input_window(
 	event_beat: float,
-	input_type: InputType
+	input_type: RhythmTypes.InputType
 ) -> void:
 	current_input_beat = event_beat
 	expected_input_type = input_type
 	input_expected = true
 
-	change_character_state(CharacterState.WAIT_INPUT)
+	change_character_state(RhythmTypes.CharacterState.WAIT_INPUT)
 
-# プレイヤー入力を判定する
-func receive_sensor_input(sensor_input_type: InputType) -> void:
+
+# SensorProviderから入力を受信する
+func receive_sensor_input(sensor_input_type: RhythmTypes.InputType) -> void:
 	if not input_expected:
 		last_judgement = "NO INPUT EXPECTED"
 		return
@@ -218,6 +250,7 @@ func receive_sensor_input(sensor_input_type: InputType) -> void:
 		return
 
 	judge_input_timing()
+
 
 # 入力タイミングを判定する
 func judge_input_timing() -> void:
@@ -250,16 +283,17 @@ func complete_input(judgement: String) -> void:
 	input_expected = false
 
 	remove_first_debug_note()
-	match expected_input_type:
-		InputType.PREPARE:
-			change_character_state(CharacterState.PREPARE)
 
-		InputType.CHEERS:
-			change_character_state(CharacterState.CHEERS)
+	match expected_input_type:
+		RhythmTypes.InputType.PREPARE:
+			change_character_state(RhythmTypes.CharacterState.PREPARE)
+
+		RhythmTypes.InputType.CHEERS:
+			change_character_state(RhythmTypes.CharacterState.CHEERS)
 			return_to_normal_after_delay()
 
 
-# 入力されないまま判定可能時間を過ぎた場合の処理
+# 入力されないまま判定可能時間を過ぎた場合
 func process_missed_input(song_time: float) -> void:
 	if not input_expected:
 		return
@@ -271,13 +305,13 @@ func process_missed_input(song_time: float) -> void:
 
 	last_judgement = (
 		"MISS: %s"
-		% InputType.keys()[expected_input_type]
+		% RhythmTypes.InputType.keys()[expected_input_type]
 	)
 
 	input_expected = false
 
 	remove_first_debug_note()
-	change_character_state(CharacterState.NORMAL)
+	change_character_state(RhythmTypes.CharacterState.NORMAL)
 
 
 # 一定時間後に通常状態へ戻す
@@ -286,33 +320,22 @@ func return_to_normal_after_delay() -> void:
 
 	await get_tree().create_timer(0.5).timeout
 
-	# 待機中に別の状態遷移が起きていれば何もしない
+	# 待機中に別の状態遷移が発生していたら戻さない
 	if generation != state_change_generation:
 		return
 
-	change_character_state(CharacterState.NORMAL)
+	change_character_state(RhythmTypes.CharacterState.NORMAL)
 
 
 # キャラクター状態を変更する
-func change_character_state(new_state: CharacterState) -> void:
+func change_character_state(new_state: RhythmTypes.CharacterState) -> void:
 	if character_state == new_state:
 		return
 
 	character_state = new_state
 	state_change_generation += 1
 
-	match new_state:
-		CharacterState.NORMAL:
-			print("NORMAL")
-
-		CharacterState.PREPARE:
-			print("PREPARE")
-
-		CharacterState.WAIT_INPUT:
-			print("WAIT_INPUT")
-
-		CharacterState.CHEERS:
-			print("CHEERS")
+	print("Character state: ",RhythmTypes.CharacterState.keys()[character_state])
 
 
 # 画面上にデバッグノートを生成する
@@ -326,7 +349,7 @@ func spawn_upcoming_debug_notes(song_time: float) -> void:
 		)
 
 		var beat: float = chart_event["beat"]
-		var input_type: InputType = chart_event["input_type"]
+		var input_type: RhythmTypes.InputType = chart_event["input_type"]
 		var note_time: float = beat_to_seconds(beat)
 
 		if song_time < note_time - APPROACH_TIME:
@@ -335,23 +358,21 @@ func spawn_upcoming_debug_notes(song_time: float) -> void:
 		var note: DebugNote = debug_note_scene.instantiate() as DebugNote
 
 		if note == null:
-			push_error(
-				"debug_note_sceneのルートにDebugNoteが設定されていません。"
-			)
+			push_error("debug_note_sceneのルートにDebugNoteが設定されていません。")
 			return
 
 		note.beat = beat
 		note.position = Vector2(spawn_x, note_y)
 
+		# @onreadyを初期化させるため先にツリーへ追加する
 		debug_notes.add_child(note)
 
 		match input_type:
-			InputType.PREPARE:
+			RhythmTypes.InputType.PREPARE:
 				note.set_debug_color(PREPARE_NOTE_COLOR)
 
-			InputType.CHEERS:
+			RhythmTypes.InputType.CHEERS:
 				note.set_debug_color(CHEERS_NOTE_COLOR)
-
 
 		active_notes.append(note)
 		next_debug_note_index += 1
@@ -387,38 +408,39 @@ func remove_first_debug_note() -> void:
 	if is_instance_valid(note):
 		note.queue_free()
 
-# 入力期待状態のときに、期待される入力タイプを文字列で返す
+
+# 現在期待している入力タイプ名を返す
 func get_expected_input_type_string() -> String:
 	if not input_expected:
 		return "-"
-	return InputType.keys()[expected_input_type]
+
+	return RhythmTypes.InputType.keys()[expected_input_type]
+
 
 # デバッグラベルを更新する
 func update_debug_label(
 	song_time: float,
 	current_beat: float
 ) -> void:
+	if not show_debug_notes:
+		return
+
+	var sensor_mode_name: String = (SensorMode.keys()[sensor_mode])
+
 	debug_label.text = (
 		"Song Time: %.2f\n" % song_time
 		+ "Current Beat: %.2f\n" % current_beat
+		+ "Sensor Mode: %s\n" % sensor_mode_name
 		+ "Next Event Index: %d\n" % next_event_index
 		+ "Next Debug Note Index: %d\n" % next_debug_note_index
-		+ "State: %s\n"
-		% CharacterState.keys()[character_state]
+		+ "State: %s\n" % RhythmTypes.CharacterState.keys()[character_state]
 		+ "Input Expected: %s\n" % input_expected
 		+ "Expected Input Type: %s\n" % get_expected_input_type_string()
 		+ "Last Judgement: %s" % last_judgement
 	)
 
 
-# 判定ラインの位置を設定する
-func set_judge_line_position() -> void:
-	var judge_point := Vector2(judge_x, note_y)
-
-	judge_line.size = Vector2(6.0, 180.0)
-	judge_line.position = judge_point - judge_line.size / 2.0
-
-# デバッグ用のレイアウトを設定する
+# デバッグ用レイアウトを設定する
 func set_debug_layout() -> void:
 	var viewport_size: Vector2 = get_viewport_rect().size
 
@@ -427,3 +449,11 @@ func set_debug_layout() -> void:
 	note_y = viewport_size.y * 0.72
 
 	set_judge_line_position()
+
+
+# 判定ラインの位置を設定する
+func set_judge_line_position() -> void:
+	var judge_point := Vector2(judge_x, note_y)
+
+	judge_line.size = Vector2(6.0, 180.0)
+	judge_line.position = (judge_point - judge_line.size / 2.0)
