@@ -5,23 +5,31 @@
 [ext_resource type="AudioStream" uid="uid://ce6ofcmq51idr" path="res://assets/audio/test_kanpai_bgm.mp3" id="3_4dugh"]
 [ext_resource type="Script" uid="uid://df4i81f18vrrq" path="res://sensor/keyboard_sensor_provider.gd" id="4_67ri8"]
 [ext_resource type="Script" uid="uid://bm8fmsjv82evy" path="res://sensor/serial_sensor_provider.gd" id="5_grrlh"]
+[ext_resource type="Script" uid="uid://bk5um3l1445uq" path="res://rhythm/rhythm_session.gd" id="6_session"]
+[ext_resource type="Script" uid="uid://ckcyllbfub7vd" path="res://debug/rhythm_debug_display.gd" id="7_debug_display"]
 
 [node name="Main" type="Node2D" unique_id=1930772962]
 script = ExtResource("1_3wy1v")
-debug_note_scene = ExtResource("2_kfbq2")
 
 [node name="MusicPlayer" type="AudioStreamPlayer" parent="." unique_id=288864407]
 stream = ExtResource("3_4dugh")
 
-[node name="JudgeLine" type="ColorRect" parent="." unique_id=1249278990]
+[node name="RhythmSession" type="Node" parent="." unique_id=1535702752]
+script = ExtResource("6_session")
+
+[node name="RhythmDebugDisplay" type="Node2D" parent="." unique_id=1233133181]
+script = ExtResource("7_debug_display")
+debug_note_scene = ExtResource("2_kfbq2")
+
+[node name="JudgeLine" type="ColorRect" parent="RhythmDebugDisplay" unique_id=1249278990]
 offset_right = 6.0
 offset_bottom = 180.0
 
-[node name="DebugLabel" type="Label" parent="." unique_id=1997613239]
+[node name="DebugLabel" type="Label" parent="RhythmDebugDisplay" unique_id=1997613239]
 offset_right = 40.0
 offset_bottom = 23.0
 
-[node name="DebugNotes" type="Node2D" parent="." unique_id=664874310]
+[node name="DebugNotes" type="Node2D" parent="RhythmDebugDisplay" unique_id=664874310]
 
 [node name="KeyboardSensorProvider" type="Node" parent="." unique_id=1196853569]
 script = ExtResource("4_67ri8")

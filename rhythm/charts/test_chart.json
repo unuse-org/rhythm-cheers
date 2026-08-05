@@ -1,0 +1,46 @@
+{
+  "bpm": 148.0,
+  "offset": 0.64,
+  "events": [
+	{
+	  "beat": 1.0,
+	  "type": "EXPECT_INPUT",
+	  "input_type": "PREPARE"
+	},
+	{
+	  "beat": 2.0,
+	  "type": "EXPECT_INPUT",
+	  "input_type": "CHEERS"
+	},
+	{
+	  "beat": 5.0,
+	  "type": "EXPECT_INPUT",
+	  "input_type": "PREPARE"
+	},
+	{
+	  "beat": 6.0,
+	  "type": "EXPECT_INPUT",
+	  "input_type": "CHEERS"
+	},
+	{
+	  "beat": 8.0,
+	  "type": "EXPECT_INPUT",
+	  "input_type": "PREPARE"
+	},
+	{
+	  "beat": 10.0,
+	  "type": "EXPECT_INPUT",
+	  "input_type": "CHEERS"
+	},
+	{
+	  "beat": 12.0,
+	  "type": "EXPECT_INPUT",
+	  "input_type": "PREPARE"
+	},
+	{
+	  "beat": 13.0,
+	  "type": "EXPECT_INPUT",
+	  "input_type": "CHEERS"
+	}
+  ]
+}
