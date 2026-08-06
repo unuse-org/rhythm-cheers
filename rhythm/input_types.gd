@@ -14,6 +14,5 @@ enum EventType {
 enum CharacterState {
 	NORMAL,
 	PREPARE,
-	WAIT_INPUT,
 	CHEERS,
 }

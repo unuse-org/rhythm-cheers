@@ -2,6 +2,7 @@ extends Node2D
 
 @onready var music_player: AudioStreamPlayer = $MusicPlayer
 @onready var rhythm_session: RhythmSession = $RhythmSession
+@onready var gameplay_visual: GameplayVisual = $GameplayVisual
 @onready var rhythm_debug_display: RhythmDebugDisplay = $RhythmDebugDisplay
 
 @onready var keyboard_sensor_provider: SensorProvider = $KeyboardSensorProvider
@@ -31,6 +32,8 @@ func _ready() -> void:
 
 	# チャートの読み込み
 	rhythm_session.configure(chart)
+	# ゲーム画面の初期化
+	gameplay_visual.configure(rhythm_session)
 	# デバッグ表示の初期化
 	rhythm_debug_display.configure(
 		rhythm_session,
@@ -52,6 +55,7 @@ func _process(_delta: float) -> void:
 	var song_time: float = music_player.get_playback_position()
 
 	rhythm_session.advance(song_time)
+	gameplay_visual.advance(song_time)
 	rhythm_debug_display.advance(song_time)
 
 
@@ -83,7 +87,15 @@ func initialize_sensor_provider() -> void:
 # SensorProviderから入力を受信する
 func receive_sensor_input(sensor_input_type: RhythmTypes.InputType) -> void:
 	var song_time: float = music_player.get_playback_position()
-	rhythm_session.receive_input(sensor_input_type, song_time)
+	var accepted := rhythm_session.receive_input(
+		sensor_input_type,
+		song_time
+	)
+	gameplay_visual.show_player_input(
+		sensor_input_type,
+		accepted,
+		song_time
+	)
 
 
 func on_sensor_error(message: String) -> void:
