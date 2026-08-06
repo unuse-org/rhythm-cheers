@@ -20,6 +20,7 @@ func run_tests() -> void:
 
 	test_character_follows_chart(chart)
 	test_missed_cheers(chart)
+	test_cheers_text_transitions(chart)
 	test_player_state_transitions(chart)
 	finish_tests()
 
@@ -115,6 +116,78 @@ func test_missed_cheers(chart: RhythmChart) -> void:
 		RhythmTypes.CharacterState.NORMAL,
 		"MISS後もRETURN_NORMALでCharacterがNORMALになる"
 	)
+	session.free()
+
+
+func test_cheers_text_transitions(chart: RhythmChart) -> void:
+	var session := RhythmSession.new()
+	root.add_child(session)
+	session.configure(chart)
+
+	var visual_scene := load(VISUAL_SCENE_PATH) as PackedScene
+	var visual := visual_scene.instantiate() as GameplayVisual
+	root.add_child(visual)
+	visual.configure(session)
+
+	var first_character := visual.first_cheers_character
+	var second_character := visual.second_cheers_character
+
+	expect_true(
+		not first_character.visible and not second_character.visible,
+		"NORMALでは乾杯文字を表示しない"
+	)
+
+	session.change_character_state(RhythmTypes.CharacterState.PREPARE)
+	expect_equal(first_character.text, "乾", "PREPAREの1文字目")
+	expect_true(first_character.visible, "PREPAREでは乾を表示する")
+	expect_true(
+		not second_character.visible,
+		"PREPAREでは杯を表示しない"
+	)
+
+	session.change_character_state(RhythmTypes.CharacterState.JUDGING)
+	expect_equal(first_character.text, "乾", "JUDGINGの1文字目")
+	expect_equal(second_character.text, "杯", "JUDGINGの2文字目")
+	expect_true(
+		first_character.visible and second_character.visible,
+		"JUDGINGでは乾杯を表示する"
+	)
+
+	session.change_character_state(RhythmTypes.CharacterState.SUCCESS)
+	expect_equal(first_character.text, "乾", "SUCCESSの1文字目")
+	expect_equal(second_character.text, "杯", "SUCCESSの2文字目")
+	expect_equal(
+		first_character.get_theme_color("font_color"),
+		GameplayVisual.SUCCESS_TEXT_COLOR,
+		"SUCCESSでは乾杯の色を豪華にする"
+	)
+	expect_equal(
+		second_character.get_theme_constant("outline_size"),
+		GameplayVisual.RESULT_OUTLINE_SIZE,
+		"SUCCESSでは乾杯の縁取りを強くする"
+	)
+
+	session.change_character_state(RhythmTypes.CharacterState.FAILURE)
+	expect_equal(first_character.text, "失", "FAILUREの1文字目")
+	expect_equal(second_character.text, "杯", "FAILUREの2文字目")
+	expect_equal(
+		first_character.get_theme_color("font_color"),
+		GameplayVisual.FAILURE_TEXT_COLOR,
+		"FAILUREでは失の色を変更する"
+	)
+	expect_equal(
+		second_character.get_theme_color("font_color"),
+		GameplayVisual.BASE_TEXT_COLOR,
+		"FAILUREでも杯は通常色を維持する"
+	)
+
+	session.change_character_state(RhythmTypes.CharacterState.NORMAL)
+	expect_true(
+		not first_character.visible and not second_character.visible,
+		"RETURN_NORMALでは乾杯文字を消す"
+	)
+
+	visual.free()
 	session.free()
 
 

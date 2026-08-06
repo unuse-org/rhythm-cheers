@@ -83,3 +83,45 @@ mouse_filter = 2
 texture = ExtResource("10_cheers_effect")
 expand_mode = 1
 stretch_mode = 5
+
+[node name="CheersText" type="Control" parent="."]
+z_index = 5
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="FirstCharacter" type="Label" parent="CheersText"]
+visible = false
+layout_mode = 0
+offset_left = 160.0
+offset_top = 100.0
+offset_right = 360.0
+offset_bottom = 320.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.91, 0.45, 1)
+theme_override_colors/font_outline_color = Color(0.95, 0.35, 0.12, 1)
+theme_override_constants/outline_size = 12
+theme_override_font_sizes/font_size = 160
+text = "乾"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SecondCharacter" type="Label" parent="CheersText"]
+visible = false
+layout_mode = 0
+offset_left = 360.0
+offset_top = 100.0
+offset_right = 560.0
+offset_bottom = 320.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.91, 0.45, 1)
+theme_override_colors/font_outline_color = Color(0.95, 0.35, 0.12, 1)
+theme_override_constants/outline_size = 12
+theme_override_font_sizes/font_size = 160
+text = "杯"
+horizontal_alignment = 1
+vertical_alignment = 1

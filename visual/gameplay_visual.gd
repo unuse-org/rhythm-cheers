@@ -4,6 +4,8 @@ extends Control
 @onready var character: TextureRect = $Character
 @onready var player: TextureRect = $Player
 @onready var cheers_effect: TextureRect = $CheersEffect
+@onready var first_cheers_character: Label = $CheersText/FirstCharacter
+@onready var second_cheers_character: Label = $CheersText/SecondCharacter
 
 @export_category("Character")
 @export var character_normal_texture: Texture2D
@@ -16,6 +18,14 @@ extends Control
 @export var player_cheers_texture: Texture2D
 
 const REJECTED_INPUT_DISPLAY_SECONDS: float = 0.5
+const BASE_TEXT_COLOR: Color = Color(1.0, 0.91, 0.45)
+const BASE_OUTLINE_COLOR: Color = Color(0.95, 0.35, 0.12)
+const SUCCESS_TEXT_COLOR: Color = Color(1.0, 0.78, 0.15)
+const SUCCESS_OUTLINE_COLOR: Color = Color(0.75, 0.10, 0.50)
+const FAILURE_TEXT_COLOR: Color = Color.WHITE
+const FAILURE_OUTLINE_COLOR: Color = Color(0.05, 0.25, 0.45)
+const BASE_OUTLINE_SIZE: int = 12
+const RESULT_OUTLINE_SIZE: int = 18
 
 var rhythm_session: RhythmSession
 
@@ -118,6 +128,73 @@ func set_character_state(state: RhythmTypes.CharacterState) -> void:
 
 		RhythmTypes.CharacterState.FAILURE:
 			character.texture = character_normal_texture
+
+	update_cheers_text(state)
+
+
+func update_cheers_text(state: RhythmTypes.CharacterState) -> void:
+	first_cheers_character.text = "乾"
+	second_cheers_character.text = "杯"
+	first_cheers_character.visible = false
+	second_cheers_character.visible = false
+	set_cheers_text_style(
+		first_cheers_character,
+		BASE_TEXT_COLOR,
+		BASE_OUTLINE_COLOR,
+		BASE_OUTLINE_SIZE
+	)
+	set_cheers_text_style(
+		second_cheers_character,
+		BASE_TEXT_COLOR,
+		BASE_OUTLINE_COLOR,
+		BASE_OUTLINE_SIZE
+	)
+
+	match state:
+		RhythmTypes.CharacterState.PREPARE:
+			first_cheers_character.visible = true
+
+		RhythmTypes.CharacterState.JUDGING:
+			first_cheers_character.visible = true
+			second_cheers_character.visible = true
+
+		RhythmTypes.CharacterState.SUCCESS:
+			first_cheers_character.visible = true
+			second_cheers_character.visible = true
+			set_cheers_text_style(
+				first_cheers_character,
+				SUCCESS_TEXT_COLOR,
+				SUCCESS_OUTLINE_COLOR,
+				RESULT_OUTLINE_SIZE
+			)
+			set_cheers_text_style(
+				second_cheers_character,
+				SUCCESS_TEXT_COLOR,
+				SUCCESS_OUTLINE_COLOR,
+				RESULT_OUTLINE_SIZE
+			)
+
+		RhythmTypes.CharacterState.FAILURE:
+			first_cheers_character.text = "失"
+			first_cheers_character.visible = true
+			second_cheers_character.visible = true
+			set_cheers_text_style(
+				first_cheers_character,
+				FAILURE_TEXT_COLOR,
+				FAILURE_OUTLINE_COLOR,
+				RESULT_OUTLINE_SIZE
+			)
+
+
+func set_cheers_text_style(
+	label: Label,
+	font_color: Color,
+	outline_color: Color,
+	outline_size: int
+) -> void:
+	label.add_theme_color_override("font_color", font_color)
+	label.add_theme_color_override("font_outline_color", outline_color)
+	label.add_theme_constant_override("outline_size", outline_size)
 
 
 func reset_player_state() -> void:
