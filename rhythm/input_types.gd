@@ -2,17 +2,19 @@ class_name RhythmTypes
 extends Object
 
 enum InputType {
-	PREPARE,
 	CHEERS,
 }
 
 enum EventType {
-	EXPECT_INPUT,
+	PREPARE,
+	EXPECT_CHEERS,
 	RETURN_NORMAL,
 }
 
 enum CharacterState {
 	NORMAL,
 	PREPARE,
-	CHEERS,
+	JUDGING,
+	SUCCESS,
+	FAILURE,
 }

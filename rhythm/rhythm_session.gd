@@ -26,7 +26,6 @@ var character_state: RhythmTypes.CharacterState = RhythmTypes.CharacterState.NOR
 # 入力判定
 var input_expected: bool = false
 var current_input_beat: float = 0.0
-var expected_input_type: RhythmTypes.InputType = RhythmTypes.InputType.PREPARE
 
 # 最後の判定結果
 var last_judgement: String = "-"
@@ -43,7 +42,6 @@ func configure(new_chart: RhythmChart) -> void:
 	character_state = RhythmTypes.CharacterState.NORMAL
 	input_expected = false
 	current_input_beat = 0.0
-	expected_input_type = RhythmTypes.InputType.PREPARE
 	last_judgement = "-"
 
 
@@ -62,7 +60,7 @@ func receive_input(
 		set_judgement("NO INPUT EXPECTED")
 		return false
 
-	if sensor_input_type != expected_input_type:
+	if sensor_input_type != RhythmTypes.InputType.CHEERS:
 		set_judgement("WRONG INPUT TYPE")
 		return false
 
@@ -81,7 +79,7 @@ func process_chart_events(song_time: float) -> void:
 		var execution_time: float = event_time
 
 		# 判定時刻よりMISS_WINDOW秒前から入力受付を開始する
-		if event_type == RhythmTypes.EventType.EXPECT_INPUT:
+		if event_type == RhythmTypes.EventType.EXPECT_CHEERS:
 			execution_time -= MISS_WINDOW
 
 		if song_time < execution_time:
@@ -95,35 +93,29 @@ func process_chart_events(song_time: float) -> void:
 func execute_chart_event(chart_event: Dictionary) -> void:
 	var event_type: RhythmTypes.EventType = chart_event["type"]
 
-	# RhythmTypes.EventType.EXPECT_INPUT: 入力受付を開始する
+	# RhythmTypes.EventType.PREPARE: 乾杯の準備を開始する
+	# RhythmTypes.EventType.EXPECT_CHEERS: 乾杯入力の受付を開始する
 	# RhythmTypes.EventType.RETURN_NORMAL: キャラクター状態を通常に戻す
 	match event_type:
-		RhythmTypes.EventType.EXPECT_INPUT:
-			var event_beat: float = chart_event["beat"]
-			var input_type: RhythmTypes.InputType = chart_event["input_type"]
+		RhythmTypes.EventType.PREPARE:
+			input_expected = false
+			change_character_state(RhythmTypes.CharacterState.PREPARE)
 
-			start_input_window(event_beat, input_type)
+		RhythmTypes.EventType.EXPECT_CHEERS:
+			var event_beat: float = chart_event["beat"]
+			start_cheers_window(event_beat)
 
 		RhythmTypes.EventType.RETURN_NORMAL:
+			input_expected = false
 			change_character_state(RhythmTypes.CharacterState.NORMAL)
 
 
 # 入力受付を開始する
-func start_input_window(
-	event_beat: float,
-	input_type: RhythmTypes.InputType
-) -> void:
+func start_cheers_window(event_beat: float) -> void:
 	# 値を更新して入力受付状態にする
 	current_input_beat = event_beat
-	expected_input_type = input_type
 	input_expected = true
-
-	match input_type:
-		RhythmTypes.InputType.PREPARE:
-			change_character_state(RhythmTypes.CharacterState.PREPARE)
-
-		RhythmTypes.InputType.CHEERS:
-			change_character_state(RhythmTypes.CharacterState.CHEERS)
+	change_character_state(RhythmTypes.CharacterState.JUDGING)
 
 
 # 入力タイミングを判定する
@@ -159,9 +151,10 @@ func judge_input_timing(song_time: float) -> bool:
 func complete_input(judgement: String) -> void:
 	set_judgement(judgement)
 	input_expected = false
+	change_character_state(RhythmTypes.CharacterState.SUCCESS)
 	input_resolved.emit(
 		current_input_beat,
-		expected_input_type,
+		RhythmTypes.InputType.CHEERS,
 		judgement
 	)
 
@@ -178,14 +171,15 @@ func process_missed_input(song_time: float) -> void:
 
 	var judgement: String = (
 		"MISS: %s"
-		% RhythmTypes.InputType.keys()[expected_input_type]
+		% RhythmTypes.InputType.keys()[RhythmTypes.InputType.CHEERS]
 	)
 
 	set_judgement(judgement)
 	input_expected = false
+	change_character_state(RhythmTypes.CharacterState.FAILURE)
 	input_resolved.emit(
 		current_input_beat,
-		expected_input_type,
+		RhythmTypes.InputType.CHEERS,
 		judgement
 	)
 
@@ -214,4 +208,4 @@ func get_expected_input_type_string() -> String:
 	if not input_expected:
 		return "-"
 
-	return RhythmTypes.InputType.keys()[expected_input_type]
+	return RhythmTypes.InputType.keys()[RhythmTypes.InputType.CHEERS]

@@ -62,27 +62,18 @@ func advance(song_time: float) -> void:
 
 # センサー入力に応じてPlayer画像を更新する
 func show_player_input(
-	input_type: RhythmTypes.InputType,
+	_input_type: RhythmTypes.InputType,
 	accepted: bool,
 	song_time: float
 ) -> void:
-	var input_state := input_type_to_character_state(input_type)
-
 	if accepted:
 		temporary_player_state_active = false
 		temporary_player_state_until = INF
-		player_state = input_state
-
-		match input_type:
-			RhythmTypes.InputType.PREPARE:
-				player_state_reset_song_time = INF
-				cheers_effect.visible = false
-
-			RhythmTypes.InputType.CHEERS:
-				player_state_reset_song_time = (
-					song_time + 60.0 / rhythm_session.timing.bpm
-				)
-				cheers_effect.visible = true
+		player_state = RhythmTypes.CharacterState.SUCCESS
+		player_state_reset_song_time = (
+			song_time + 60.0 / rhythm_session.timing.bpm
+		)
+		cheers_effect.visible = true
 
 		update_player_texture()
 		return
@@ -92,7 +83,7 @@ func show_player_input(
 	temporary_player_state_until = (
 		song_time + REJECTED_INPUT_DISPLAY_SECONDS
 	)
-	player.texture = get_player_texture(input_state)
+	player.texture = player_cheers_texture
 
 
 func _on_character_state_changed(
@@ -121,8 +112,12 @@ func set_character_state(state: RhythmTypes.CharacterState) -> void:
 		RhythmTypes.CharacterState.PREPARE:
 			character.texture = character_prepare_texture
 
-		RhythmTypes.CharacterState.CHEERS:
+		RhythmTypes.CharacterState.JUDGING, \
+		RhythmTypes.CharacterState.SUCCESS:
 			character.texture = character_cheers_texture
+
+		RhythmTypes.CharacterState.FAILURE:
+			character.texture = character_normal_texture
 
 
 func reset_player_state() -> void:
@@ -142,24 +137,9 @@ func get_player_texture(
 	state: RhythmTypes.CharacterState
 ) -> Texture2D:
 	match state:
-		RhythmTypes.CharacterState.PREPARE:
-			return player_prepare_texture
-
-		RhythmTypes.CharacterState.CHEERS:
+		RhythmTypes.CharacterState.JUDGING, \
+		RhythmTypes.CharacterState.SUCCESS:
 			return player_cheers_texture
 
 		_:
 			return player_normal_texture
-
-
-func input_type_to_character_state(
-	input_type: RhythmTypes.InputType
-) -> RhythmTypes.CharacterState:
-	match input_type:
-		RhythmTypes.InputType.PREPARE:
-			return RhythmTypes.CharacterState.PREPARE
-
-		RhythmTypes.InputType.CHEERS:
-			return RhythmTypes.CharacterState.CHEERS
-
-	return RhythmTypes.CharacterState.NORMAL

@@ -19,6 +19,7 @@ func run_tests() -> void:
 		return
 
 	test_character_follows_chart(chart)
+	test_missed_cheers(chart)
 	test_player_state_transitions(chart)
 	finish_tests()
 
@@ -29,37 +30,52 @@ func test_character_follows_chart(chart: RhythmChart) -> void:
 	session.configure(chart)
 
 	var prepare_time: float = session.timing.beat_to_seconds(1.0)
-	session.advance(prepare_time - RhythmSession.MISS_WINDOW + 0.001)
+	session.advance(prepare_time - 0.001)
+	expect_equal(
+		session.character_state,
+		RhythmTypes.CharacterState.NORMAL,
+		"PREPAREイベントの直前はNORMALを維持する"
+	)
+	session.advance(prepare_time)
 	expect_equal(
 		session.character_state,
 		RhythmTypes.CharacterState.PREPARE,
 		"PREPAREイベントでCharacterがPREPAREになる"
 	)
+	expect_true(
+		not session.input_expected,
+		"PREPAREイベントでは入力受付を開始しない"
+	)
 
 	var accepted := session.receive_input(
-		RhythmTypes.InputType.PREPARE,
+		RhythmTypes.InputType.CHEERS,
 		prepare_time
 	)
-	expect_true(accepted, "正しいPREPARE入力を受理する")
+	expect_true(not accepted, "PREPARE中のCHEERS入力を受理しない")
 	expect_equal(
 		session.character_state,
 		RhythmTypes.CharacterState.PREPARE,
-		"入力成功後もCharacterはChart状態を維持する"
+		"PREPARE中の入力でCharacter状態を変更しない"
 	)
 
 	var cheers_time: float = session.timing.beat_to_seconds(2.0)
 	session.advance(cheers_time - RhythmSession.MISS_WINDOW + 0.001)
 	expect_equal(
 		session.character_state,
-		RhythmTypes.CharacterState.CHEERS,
-		"CHEERSイベントでCharacterがCHEERSになる"
+		RhythmTypes.CharacterState.JUDGING,
+		"EXPECT_CHEERSイベントでCharacterがJUDGINGになる"
 	)
+	expect_true(session.input_expected, "EXPECT_CHEERSで入力受付を開始する")
 
-	session.advance(cheers_time + RhythmSession.MISS_WINDOW + 0.001)
+	accepted = session.receive_input(
+		RhythmTypes.InputType.CHEERS,
+		cheers_time
+	)
+	expect_true(accepted, "判定時間内のCHEERS入力を受理する")
 	expect_equal(
 		session.character_state,
-		RhythmTypes.CharacterState.CHEERS,
-		"MISSしてもCharacterはChart状態を維持する"
+		RhythmTypes.CharacterState.SUCCESS,
+		"CHEERS入力成功時にCharacterがSUCCESSになる"
 	)
 
 	session.advance(session.timing.beat_to_seconds(3.0))
@@ -67,6 +83,37 @@ func test_character_follows_chart(chart: RhythmChart) -> void:
 		session.character_state,
 		RhythmTypes.CharacterState.NORMAL,
 		"RETURN_NORMALイベントでCharacterがNORMALになる"
+	)
+	session.free()
+
+
+func test_missed_cheers(chart: RhythmChart) -> void:
+	var session := RhythmSession.new()
+	root.add_child(session)
+	session.configure(chart)
+
+	var prepare_time: float = session.timing.beat_to_seconds(1.0)
+	var cheers_time: float = session.timing.beat_to_seconds(2.0)
+
+	session.advance(prepare_time)
+	session.advance(cheers_time - RhythmSession.MISS_WINDOW + 0.001)
+	session.advance(cheers_time + RhythmSession.MISS_WINDOW + 0.001)
+
+	expect_equal(
+		session.character_state,
+		RhythmTypes.CharacterState.FAILURE,
+		"CHEERS入力がなければCharacterがFAILUREになる"
+	)
+	expect_true(
+		session.last_judgement.begins_with("MISS"),
+		"CHEERS入力がなければMISSを記録する"
+	)
+
+	session.advance(session.timing.beat_to_seconds(3.0))
+	expect_equal(
+		session.character_state,
+		RhythmTypes.CharacterState.NORMAL,
+		"MISS後もRETURN_NORMALでCharacterがNORMALになる"
 	)
 	session.free()
 
@@ -112,18 +159,6 @@ func test_player_state_transitions(chart: RhythmChart) -> void:
 	)
 
 	visual.show_player_input(
-		RhythmTypes.InputType.PREPARE,
-		true,
-		1.0
-	)
-	visual.advance(10.0)
-	expect_texture_name(
-		visual.player.texture,
-		"player_prepare.png",
-		"受理されたPREPAREを維持する"
-	)
-
-	visual.show_player_input(
 		RhythmTypes.InputType.CHEERS,
 		false,
 		10.0
@@ -138,7 +173,7 @@ func test_player_state_transitions(chart: RhythmChart) -> void:
 	)
 	expect_texture_name(
 		visual.player.texture,
-		"player_prepare.png",
+		"player_normal.png",
 		"誤入力後に直前の状態へ戻る"
 	)
 
@@ -159,12 +194,7 @@ func test_player_state_transitions(chart: RhythmChart) -> void:
 		"CHEERS成功から1拍後にEffectを非表示にする"
 	)
 
-	visual.show_player_input(
-		RhythmTypes.InputType.PREPARE,
-		true,
-		30.0
-	)
-	session.start_input_window(1.0, RhythmTypes.InputType.CHEERS)
+	session.start_cheers_window(1.0)
 	session.process_missed_input(
 		session.timing.beat_to_seconds(1.0)
 		+ RhythmSession.MISS_WINDOW
@@ -177,7 +207,7 @@ func test_player_state_transitions(chart: RhythmChart) -> void:
 	)
 
 	visual.show_player_input(
-		RhythmTypes.InputType.PREPARE,
+		RhythmTypes.InputType.CHEERS,
 		true,
 		40.0
 	)

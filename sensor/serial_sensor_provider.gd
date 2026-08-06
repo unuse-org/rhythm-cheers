@@ -4,8 +4,7 @@ extends SensorProvider
 # TODO:
 # - GdSerialを利用してシリアルポートを開く
 # - センサー入力を読み取る
-# - PREPARE/CHEERSに応じてinput_detected.emit(...) を呼ぶ
-# （センサ側でPREPARE/CHEERSの判定をする？）
+# - 乾杯を検出したらinput_detected.emit(InputType.CHEERS)を呼ぶ
 #
 
 func start() -> void:
