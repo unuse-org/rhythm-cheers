@@ -21,7 +21,7 @@ func run_tests() -> void:
 	test_character_follows_chart(chart)
 	test_missed_cheers(chart)
 	test_cheers_text_transitions(chart)
-	test_player_state_transitions(chart)
+	test_result_visual_transitions(chart)
 	finish_tests()
 
 
@@ -191,7 +191,7 @@ func test_cheers_text_transitions(chart: RhythmChart) -> void:
 	session.free()
 
 
-func test_player_state_transitions(chart: RhythmChart) -> void:
+func test_result_visual_transitions(chart: RhythmChart) -> void:
 	var session := RhythmSession.new()
 	root.add_child(session)
 	session.configure(chart)
@@ -219,77 +219,94 @@ func test_player_state_transitions(chart: RhythmChart) -> void:
 		"Table"
 	)
 	expect_control_rect(
-		visual.get_node("Player") as Control,
+		visual.player_cheers,
 		Vector2(232.0, 890.0),
 		Vector2(256.0, 269.0),
-		"Player"
+		"PlayerCheers"
 	)
 
 	expect_texture_name(
-		visual.player.texture,
-		"player_normal.png",
-		"Playerの初期画像がNORMALになる"
+		visual.character.texture,
+		"character_normal.png",
+		"NORMALでは通常の人物画像を表示する"
 	)
-
-	visual.show_player_input(
-		RhythmTypes.InputType.CHEERS,
-		false,
-		10.0
-	)
-	expect_texture_name(
-		visual.player.texture,
-		"player_cheers.png",
-		"誤入力画像を一時表示する"
-	)
-	visual.advance(
-		10.0 + GameplayVisual.REJECTED_INPUT_DISPLAY_SECONDS + 0.01
-	)
-	expect_texture_name(
-		visual.player.texture,
-		"player_normal.png",
-		"誤入力後に直前の状態へ戻る"
-	)
-
-	visual.show_player_input(
-		RhythmTypes.InputType.CHEERS,
-		true,
-		20.0
-	)
-	expect_true(visual.cheers_effect.visible, "CHEERS成功時にEffectを表示する")
-	visual.advance(20.0 + 60.0 / chart.bpm + 0.001)
-	expect_texture_name(
-		visual.player.texture,
-		"player_normal.png",
-		"CHEERS成功から1拍後にNORMALへ戻る"
+	expect_true(
+		not visual.player_cheers.visible,
+		"NORMALではユーザー側ジョッキを表示しない"
 	)
 	expect_true(
 		not visual.cheers_effect.visible,
-		"CHEERS成功から1拍後にEffectを非表示にする"
+		"NORMALでは衝突エフェクトを表示しない"
 	)
 
-	session.start_cheers_window(1.0)
-	session.process_missed_input(
-		session.timing.beat_to_seconds(1.0)
-		+ RhythmSession.MISS_WINDOW
-		+ 0.001
-	)
-	expect_texture_name(
-		visual.player.texture,
-		"player_normal.png",
-		"MISS時にPlayerをNORMALへ戻す"
-	)
-
-	visual.show_player_input(
-		RhythmTypes.InputType.CHEERS,
-		true,
-		40.0
-	)
 	session.change_character_state(RhythmTypes.CharacterState.PREPARE)
-	session.change_character_state(RhythmTypes.CharacterState.NORMAL)
 	expect_texture_name(
-		visual.player.texture,
-		"player_normal.png",
-		"RETURN_NORMAL時にPlayerもNORMALへ戻す"
+		visual.character.texture,
+		"character_prepare.png",
+		"PREPAREでは準備中の人物画像を表示する"
+	)
+	expect_true(
+		not visual.player_cheers.visible,
+		"PREPAREではユーザー側ジョッキを表示しない"
+	)
+
+	session.change_character_state(RhythmTypes.CharacterState.JUDGING)
+	expect_texture_name(
+		visual.character.texture,
+		"character_cheers.png",
+		"JUDGINGでは乾杯中の人物画像を表示する"
+	)
+	expect_true(
+		not visual.player_cheers.visible,
+		"JUDGINGではユーザー側ジョッキを表示しない"
+	)
+
+	session.change_character_state(RhythmTypes.CharacterState.SUCCESS)
+	expect_texture_name(
+		visual.player_cheers.texture,
+		"player_cheers.png",
+		"SUCCESSではユーザー側の手とジョッキ画像を使用する"
+	)
+	expect_true(visual.player_cheers.visible, "SUCCESSではジョッキを表示する")
+	expect_true(
+		visual.cheers_effect.visible,
+		"SUCCESSでは衝突エフェクトを表示する"
+	)
+	visual.advance(100.0)
+	expect_true(
+		visual.player_cheers.visible and visual.cheers_effect.visible,
+		"SUCCESSの演出をRETURN_NORMALまで維持する"
+	)
+
+	session.change_character_state(RhythmTypes.CharacterState.FAILURE)
+	expect_texture_name(
+		visual.character.texture,
+		"character_normal.png",
+		"失敗素材がない間は通常の人物画像を流用する"
+	)
+	expect_equal(
+		visual.character.modulate,
+		GameplayVisual.FAILURE_CHARACTER_MODULATE,
+		"FAILUREでは人物画像に仮の失敗表現を加える"
+	)
+	expect_true(
+		not visual.player_cheers.visible,
+		"FAILUREではユーザー側ジョッキを表示しない"
+	)
+	expect_true(
+		not visual.cheers_effect.visible,
+		"FAILUREでは衝突エフェクトを表示しない"
+	)
+
+	session.change_character_state(RhythmTypes.CharacterState.NORMAL)
+	expect_equal(
+		visual.character.modulate,
+		Color.WHITE,
+		"RETURN_NORMALでは人物画像の色を戻す"
+	)
+	expect_true(
+		not visual.player_cheers.visible,
+		"RETURN_NORMALではユーザー側ジョッキを消す"
 	)
 
 	visual.free()

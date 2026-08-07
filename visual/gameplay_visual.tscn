@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://visual/gameplay_visual.gd" id="1_visual"]
 [ext_resource type="Texture2D" path="res://assets/images/background.png" id="2_background"]
@@ -6,8 +6,6 @@
 [ext_resource type="Texture2D" path="res://assets/images/character_prepare.png" id="4_character_prepare"]
 [ext_resource type="Texture2D" path="res://assets/images/character_cheers.png" id="5_character_cheers"]
 [ext_resource type="Texture2D" path="res://assets/images/table.png" id="6_table"]
-[ext_resource type="Texture2D" path="res://assets/images/player_normal.png" id="7_player_normal"]
-[ext_resource type="Texture2D" path="res://assets/images/player_prepare.png" id="8_player_prepare"]
 [ext_resource type="Texture2D" path="res://assets/images/player_cheers.png" id="9_player_cheers"]
 [ext_resource type="Texture2D" path="res://assets/images/cheers_effect.png" id="10_cheers_effect"]
 
@@ -20,9 +18,6 @@ script = ExtResource("1_visual")
 character_normal_texture = ExtResource("3_character_normal")
 character_prepare_texture = ExtResource("4_character_prepare")
 character_cheers_texture = ExtResource("5_character_cheers")
-player_normal_texture = ExtResource("7_player_normal")
-player_prepare_texture = ExtResource("8_player_prepare")
-player_cheers_texture = ExtResource("9_player_cheers")
 
 [node name="Background" type="TextureRect" parent="."]
 layout_mode = 1
@@ -59,7 +54,8 @@ texture = ExtResource("6_table")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Player" type="TextureRect" parent="."]
+[node name="PlayerCheers" type="TextureRect" parent="."]
+visible = false
 z_index = 3
 layout_mode = 0
 offset_left = 232.0
@@ -67,7 +63,7 @@ offset_top = 890.0
 offset_right = 488.0
 offset_bottom = 1159.0
 mouse_filter = 2
-texture = ExtResource("7_player_normal")
+texture = ExtResource("9_player_cheers")
 expand_mode = 1
 stretch_mode = 5
 

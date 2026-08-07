@@ -87,13 +87,8 @@ func initialize_sensor_provider() -> void:
 # SensorProviderから入力を受信する
 func receive_sensor_input(sensor_input_type: RhythmTypes.InputType) -> void:
 	var song_time: float = music_player.get_playback_position()
-	var accepted := rhythm_session.receive_input(
+	rhythm_session.receive_input(
 		sensor_input_type,
-		song_time
-	)
-	gameplay_visual.show_player_input(
-		sensor_input_type,
-		accepted,
 		song_time
 	)
 
