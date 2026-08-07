@@ -23,6 +23,7 @@ func run_tests() -> void:
 	test_cheers_text_transitions(chart)
 	test_result_visual_transitions(chart)
 	test_character_bobs_on_beat(chart)
+	test_opponent_scroll_transitions(chart)
 	finish_tests()
 
 
@@ -208,13 +209,13 @@ func test_result_visual_transitions(chart: RhythmChart) -> void:
 		"GameplayVisualが基準解像度と一致する"
 	)
 	expect_control_rect(
-		visual.get_node("Character") as Control,
+		visual.character,
 		Vector2(150.5, 96.0),
 		Vector2(419.0, 744.0),
 		"Character"
 	)
 	expect_control_rect(
-		visual.get_node("Table") as Control,
+		visual.opponent_stations[0].get_node("Table") as Control,
 		Vector2(0.0, 680.0),
 		Vector2(720.0, 429.0),
 		"Table"
@@ -367,6 +368,119 @@ func test_character_bobs_on_beat(chart: RhythmChart) -> void:
 		visual.character.position,
 		expected_peak,
 		"NORMALへ戻ると人物の上下動を再開する"
+	)
+
+	visual.free()
+	session.free()
+
+
+func test_opponent_scroll_transitions(chart: RhythmChart) -> void:
+	var session := RhythmSession.new()
+	root.add_child(session)
+	session.configure(chart)
+
+	var visual_scene := load(VISUAL_SCENE_PATH) as PackedScene
+	var visual := visual_scene.instantiate() as GameplayVisual
+	root.add_child(visual)
+	visual.configure(session)
+
+	expect_equal(visual.opponent_count, 4, "PREPAREの数だけ乾杯相手を作る")
+	expect_equal(
+		visual.opponent_stations.size(),
+		4,
+		"乾杯相手のノード数"
+	)
+	expect_equal(
+		visual.movement_segments.size(),
+		3,
+		"乾杯相手間の移動区間数"
+	)
+
+	for index: int in visual.opponent_stations.size():
+		var station := visual.opponent_stations[index]
+		expect_vector_approx(
+			station.position,
+			Vector2(visual.opponent_spacing * index, 0.0),
+			"乾杯相手%dの配置" % index
+		)
+
+	var first_character := visual.character
+	var prepare_time := session.timing.beat_to_seconds(1.0)
+	var cheers_time := session.timing.beat_to_seconds(2.0)
+	var return_time := session.timing.beat_to_seconds(3.0)
+
+	session.advance(prepare_time)
+	session.advance(cheers_time - RhythmSession.MISS_WINDOW + 0.001)
+	session.receive_input(RhythmTypes.InputType.CHEERS, cheers_time)
+	session.advance(return_time)
+	visual.advance(return_time)
+
+	expect_equal(
+		visual.active_opponent_index,
+		1,
+		"乾杯終了後に次の相手を操作対象にする"
+	)
+	expect_true(
+		first_character != visual.character,
+		"乾杯ごとに別の人物ノードへ切り替える"
+	)
+	expect_vector_approx(
+		visual.world.position,
+		visual.world_base_position,
+		"RETURN_NORMALの時点では元の相手の位置にいる"
+	)
+
+	var movement_middle_time := session.timing.beat_to_seconds(4.0)
+	var expected_middle := (
+		visual.world_base_position
+		+ Vector2(-visual.opponent_spacing * 0.5, 0.0)
+	)
+	visual.advance(movement_middle_time)
+	expect_vector_approx(
+		visual.world.position,
+		expected_middle,
+		"次のPREPAREまでの中間で相手間の中央へ移動する"
+	)
+	visual.advance(movement_middle_time)
+	expect_vector_approx(
+		visual.world.position,
+		expected_middle,
+		"同じ曲時刻ではスクロール位置が変化しない"
+	)
+
+	var next_prepare_time := session.timing.beat_to_seconds(5.0)
+	session.advance(next_prepare_time)
+	visual.advance(next_prepare_time)
+	var next_opponent_position := (
+		visual.world_base_position
+		+ Vector2(-visual.opponent_spacing, 0.0)
+	)
+	expect_vector_approx(
+		visual.world.position,
+		next_opponent_position,
+		"次のPREPAREで次の相手を中央に配置する"
+	)
+
+	visual.advance(session.timing.beat_to_seconds(5.5))
+	expect_vector_approx(
+		visual.world.position,
+		next_opponent_position,
+		"PREPARE中は横移動を停止する"
+	)
+
+	var last_prepare_time := session.timing.beat_to_seconds(12.0)
+	session.advance(last_prepare_time)
+	visual.advance(last_prepare_time)
+	expect_equal(
+		visual.active_opponent_index,
+		3,
+		"曲時刻を進めても譜面から正しい相手を復元する"
+	)
+	expect_vector_approx(
+		visual.world.position,
+		visual.world_base_position
+		+ Vector2(-visual.opponent_spacing * 3.0, 0.0),
+		"終盤では最後の相手を中央に配置する"
 	)
 
 	visual.free()

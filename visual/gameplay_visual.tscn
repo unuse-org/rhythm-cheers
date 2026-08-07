@@ -19,7 +19,19 @@ character_normal_texture = ExtResource("3_character_normal")
 character_prepare_texture = ExtResource("4_character_prepare")
 character_cheers_texture = ExtResource("5_character_cheers")
 
-[node name="Background" type="TextureRect" parent="."]
+[node name="World" type="Control" parent="."]
+layout_mode = 0
+offset_right = 720.0
+offset_bottom = 1280.0
+mouse_filter = 2
+
+[node name="Opponent0" type="Control" parent="World"]
+layout_mode = 0
+offset_right = 720.0
+offset_bottom = 1280.0
+mouse_filter = 2
+
+[node name="Background" type="TextureRect" parent="World/Opponent0"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -31,7 +43,7 @@ texture = ExtResource("2_background")
 expand_mode = 1
 stretch_mode = 6
 
-[node name="Character" type="TextureRect" parent="."]
+[node name="Character" type="TextureRect" parent="World/Opponent0"]
 z_index = 1
 layout_mode = 0
 offset_left = 150.5
@@ -43,7 +55,7 @@ texture = ExtResource("3_character_normal")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Table" type="TextureRect" parent="."]
+[node name="Table" type="TextureRect" parent="World/Opponent0"]
 z_index = 2
 layout_mode = 0
 offset_top = 680.0
