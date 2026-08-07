@@ -12,6 +12,7 @@ extends Control
 @export var character_prepare_texture: Texture2D
 @export var character_cheers_texture: Texture2D
 @export var character_failure_texture: Texture2D
+@export_range(0.0, 48.0, 0.5) var character_bob_amplitude: float = 12.0
 
 const BASE_TEXT_COLOR: Color = Color(1.0, 0.91, 0.45)
 const BASE_OUTLINE_COLOR: Color = Color(0.95, 0.35, 0.12)
@@ -24,6 +25,11 @@ const BASE_OUTLINE_SIZE: int = 12
 const RESULT_OUTLINE_SIZE: int = 18
 
 var rhythm_session: RhythmSession
+var character_base_position: Vector2
+
+
+func _ready() -> void:
+	character_base_position = character.position
 
 
 func configure(new_rhythm_session: RhythmSession) -> void:
@@ -39,8 +45,21 @@ func configure(new_rhythm_session: RhythmSession) -> void:
 	set_character_state(rhythm_session.character_state)
 
 
-func advance(_song_time: float) -> void:
-	pass
+func advance(song_time: float) -> void:
+	if rhythm_session == null:
+		return
+
+	if rhythm_session.character_state != RhythmTypes.CharacterState.NORMAL:
+		reset_character_position()
+		return
+
+	var current_beat := rhythm_session.timing.seconds_to_beats(song_time)
+	var beat_progress := fposmod(current_beat, 1.0)
+	var vertical_offset := -sin(beat_progress * PI) * character_bob_amplitude
+
+	character.position = (
+		character_base_position + Vector2(0.0, vertical_offset)
+	)
 
 
 func _on_character_state_changed(
@@ -50,6 +69,7 @@ func _on_character_state_changed(
 
 
 func set_character_state(state: RhythmTypes.CharacterState) -> void:
+	reset_character_position()
 	character.modulate = Color.WHITE
 
 	match state:
@@ -72,6 +92,10 @@ func set_character_state(state: RhythmTypes.CharacterState) -> void:
 
 	update_cheers_text(state)
 	update_result_visuals(state)
+
+
+func reset_character_position() -> void:
+	character.position = character_base_position
 
 
 func update_result_visuals(state: RhythmTypes.CharacterState) -> void:

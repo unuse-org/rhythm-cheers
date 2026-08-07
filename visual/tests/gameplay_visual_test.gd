@@ -22,6 +22,7 @@ func run_tests() -> void:
 	test_missed_cheers(chart)
 	test_cheers_text_transitions(chart)
 	test_result_visual_transitions(chart)
+	test_character_bobs_on_beat(chart)
 	finish_tests()
 
 
@@ -313,6 +314,65 @@ func test_result_visual_transitions(chart: RhythmChart) -> void:
 	session.free()
 
 
+func test_character_bobs_on_beat(chart: RhythmChart) -> void:
+	var session := RhythmSession.new()
+	root.add_child(session)
+	session.configure(chart)
+
+	var visual_scene := load(VISUAL_SCENE_PATH) as PackedScene
+	var visual := visual_scene.instantiate() as GameplayVisual
+	root.add_child(visual)
+	visual.configure(session)
+
+	var base_position := visual.character.position
+	var half_beat_time := session.timing.beat_to_seconds(0.5)
+	var expected_peak := (
+		base_position + Vector2(0.0, -visual.character_bob_amplitude)
+	)
+
+	visual.advance(half_beat_time)
+	expect_vector_approx(
+		visual.character.position,
+		expected_peak,
+		"NORMALでは拍に合わせて人物が上へ動く"
+	)
+
+	visual.advance(half_beat_time)
+	expect_vector_approx(
+		visual.character.position,
+		expected_peak,
+		"同じ曲時刻では人物位置が変化しない"
+	)
+
+	var static_states: Array[RhythmTypes.CharacterState] = [
+		RhythmTypes.CharacterState.PREPARE,
+		RhythmTypes.CharacterState.JUDGING,
+		RhythmTypes.CharacterState.SUCCESS,
+		RhythmTypes.CharacterState.FAILURE,
+	]
+
+	for state: RhythmTypes.CharacterState in static_states:
+		session.change_character_state(state)
+		visual.advance(half_beat_time)
+		expect_vector_approx(
+			visual.character.position,
+			base_position,
+			"%sでは人物を基準位置に固定する"
+			% RhythmTypes.CharacterState.keys()[state]
+		)
+
+	session.change_character_state(RhythmTypes.CharacterState.NORMAL)
+	visual.advance(half_beat_time)
+	expect_vector_approx(
+		visual.character.position,
+		expected_peak,
+		"NORMALへ戻ると人物の上下動を再開する"
+	)
+
+	visual.free()
+	session.free()
+
+
 func expect_texture_name(
 	texture: Texture2D,
 	expected_name: String,
@@ -338,6 +398,17 @@ func expect_control_rect(
 ) -> void:
 	expect_equal(control.position, expected_position, "%sの位置" % label)
 	expect_equal(control.size, expected_size, "%sのサイズ" % label)
+
+
+func expect_vector_approx(
+	actual: Vector2,
+	expected: Vector2,
+	message: String
+) -> void:
+	if not actual.is_equal_approx(expected):
+		failures.append(
+			"%s: expected=%s actual=%s" % [message, expected, actual]
+		)
 
 
 func expect_true(condition: bool, message: String) -> void:
