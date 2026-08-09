@@ -1,0 +1,60 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://screens/face_capture/face_capture_screen.gd" id="1_script"]
+
+[node name="FaceCaptureScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.055, 0.09, 0.12, 1)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Content" type="VBoxContainer" parent="Center"]
+custom_minimum_size = Vector2(560, 0)
+layout_mode = 2
+theme_override_constants/separation = 28
+alignment = 1
+
+[node name="Title" type="Label" parent="Center/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 44
+text = "顔写真を撮影"
+horizontal_alignment = 1
+
+[node name="CameraPlaceholder" type="ColorRect" parent="Center/Content"]
+custom_minimum_size = Vector2(520, 620)
+layout_mode = 2
+color = Color(0.16, 0.2, 0.24, 1)
+
+[node name="Description" type="Label" parent="Center/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "現在はカメラ未接続の仮画面です"
+horizontal_alignment = 1
+
+[node name="ActionButton" type="Button" parent="Center/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "撮影完了（仮）"
