@@ -3,8 +3,6 @@
 [ext_resource type="Script" uid="uid://bxmxkl8qoibnh" path="res://main/main.gd" id="1_3wy1v"]
 [ext_resource type="PackedScene" uid="uid://bcvh1q12nfrkm" path="res://debug/debug_note.tscn" id="2_kfbq2"]
 [ext_resource type="AudioStream" uid="uid://ce6ofcmq51idr" path="res://assets/audio/test_kanpai_bgm.mp3" id="3_4dugh"]
-[ext_resource type="Script" uid="uid://df4i81f18vrrq" path="res://sensor/keyboard_sensor_provider.gd" id="4_67ri8"]
-[ext_resource type="Script" uid="uid://bm8fmsjv82evy" path="res://sensor/serial_sensor_provider.gd" id="5_grrlh"]
 [ext_resource type="Script" uid="uid://bk5um3l1445uq" path="res://rhythm/rhythm_session.gd" id="6_session"]
 [ext_resource type="Script" uid="uid://ckcyllbfub7vd" path="res://debug/rhythm_debug_display.gd" id="7_debug_display"]
 [ext_resource type="PackedScene" path="res://visual/gameplay_visual.tscn" id="8_gameplay_visual"]
@@ -36,11 +34,3 @@ offset_right = 40.0
 offset_bottom = 23.0
 
 [node name="DebugNotes" type="Node2D" parent="RhythmDebugDisplay" unique_id=664874310]
-
-[node name="KeyboardSensorProvider" type="Node" parent="." unique_id=1196853569]
-script = ExtResource("4_67ri8")
-metadata/_custom_type_script = "uid://df4i81f18vrrq"
-
-[node name="SerialSensorProvider" type="Node" parent="." unique_id=1612258852]
-script = ExtResource("5_grrlh")
-metadata/_custom_type_script = "uid://bm8fmsjv82evy"
