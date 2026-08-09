@@ -89,7 +89,6 @@ func test_placeholder_screens() -> void:
 	var screen_ids: Array[SceneFlow.ScreenId] = [
 		SceneFlow.ScreenId.TITLE,
 		SceneFlow.ScreenId.FACE_CAPTURE,
-		SceneFlow.ScreenId.TUTORIAL,
 		SceneFlow.ScreenId.RESULT,
 	]
 
@@ -124,13 +123,6 @@ func test_placeholder_screens() -> void:
 				completion_payload.get("capture_completed"),
 				true,
 				"顔撮影画面の完了データ"
-			)
-
-		if screen_id == SceneFlow.ScreenId.TUTORIAL:
-			expect_equal(
-				completion_payload.get("tutorial_completed"),
-				true,
-				"チュートリアル画面の完了データ"
 			)
 
 		screen.free()

@@ -7,16 +7,20 @@ signal screen_completed(payload: Dictionary)
 @onready var rhythm_session: RhythmSession = $RhythmSession
 @onready var gameplay_visual: GameplayVisual = $GameplayVisual
 @onready var rhythm_debug_display: RhythmDebugDisplay = $RhythmDebugDisplay
+@onready var start_overlay: Control = %StartOverlay
 
 @export_file("*.json") var chart_path: String = (
 	"res://rhythm/charts/test_chart.json"
 )
+@export_range(0.0, 5.0, 0.1) var start_delay_seconds: float = 1.5
 
 # 正式なリザルト計算が決まるまで使用する暫定ポイント。
 const POINTS_PER_SUCCESS: int = 100
 
 var run_context: RunContext
 
+# 開始演出中の入力と譜面進行を止めるための状態。
+var is_game_started: bool = false
 # finishedの重複通知やテスト操作で結果を複数回送らないためのフラグ。
 var is_game_completed: bool = false
 
@@ -27,6 +31,8 @@ func setup(context: RunContext) -> void:
 
 
 func _ready() -> void:
+	# シーン生成直後は停止し、開始演出後にstart_game()から有効化する。
+	set_process(false)
 	music_player.finished.connect(_on_music_finished)
 
 	var chart := RhythmChart.load_from_file(chart_path)
@@ -46,7 +52,7 @@ func _ready() -> void:
 		"SHARED"
 	)
 
-	music_player.play()
+	begin_start_sequence()
 
 
 func _exit_tree() -> void:
@@ -65,11 +71,39 @@ func _process(_delta: float) -> void:
 
 # Appが共有SensorProviderから転送した入力を判定へ渡す。
 func receive_sensor_input(sensor_input_type: RhythmTypes.InputType) -> void:
+	if not is_game_started or is_game_completed:
+		return
+
 	var song_time: float = music_player.get_playback_position()
 	rhythm_session.receive_input(
 		sensor_input_type,
 		song_time
 	)
+
+
+# 「本番スタート！」を表示し、一定時間後にゲームを開始する。
+func begin_start_sequence() -> void:
+	start_overlay.visible = true
+
+	if start_delay_seconds <= 0.0:
+		start_game()
+		return
+
+	get_tree().create_timer(start_delay_seconds).timeout.connect(
+		start_game,
+		CONNECT_ONE_SHOT
+	)
+
+
+# 音楽・譜面進行・入力受付を同じタイミングで開始する。
+func start_game() -> void:
+	if is_game_started or is_game_completed:
+		return
+
+	is_game_started = true
+	start_overlay.visible = false
+	set_process(true)
+	music_player.play(0.0)
 
 
 # 曲終了時点の集計値をAppへ返し、リザルト遷移を要求する。

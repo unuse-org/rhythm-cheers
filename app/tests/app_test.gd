@@ -56,9 +56,32 @@ func test_app_flow() -> void:
 		"顔撮影からチュートリアルへ進む"
 	)
 
-	app.active_sensor_provider.input_detected.emit(
-		RhythmTypes.InputType.CHEERS
+	var tutorial := app.current_screen as TutorialScreen
+	tutorial.set_process(false)
+	tutorial.music_enabled = false
+	tutorial.clear_display_duration = 0.0
+	tutorial.start_tutorial_track()
+
+	# 一曲内で3回成功させ、曲の区切りからMAINへ進む。
+	var tutorial_success_beats: Array[float] = [2.0, 6.0, 10.0]
+
+	for success_beat: float in tutorial_success_beats:
+		var target_time := tutorial.rhythm_session.timing.beat_to_seconds(
+			success_beat
+		)
+		var input_open_time := target_time - RhythmSession.MISS_WINDOW + 0.001
+
+		tutorial.advance_tutorial(input_open_time)
+		tutorial.receive_sensor_input_at(
+			RhythmTypes.InputType.CHEERS,
+			target_time
+		)
+
+	var tutorial_end_time := tutorial.rhythm_session.timing.beat_to_seconds(
+		tutorial.tutorial_end_beat
 	)
+	tutorial.advance_tutorial(tutorial_end_time)
+
 	await process_frame
 	expect_equal(
 		app.current_screen_id,
@@ -74,6 +97,24 @@ func test_app_flow() -> void:
 	var rhythm_session := main_screen.get_node(
 		"RhythmSession"
 	) as RhythmSession
+	var main_music_player := main_screen.get_node(
+		"MusicPlayer"
+	) as AudioStreamPlayer
+
+	# Mainは開始表示中に音楽・入力を開始しない。
+	expect_true(
+		not main_screen.get("is_game_started"),
+		"開始表示中はゲームを停止する"
+	)
+	expect_true(not main_music_player.playing, "開始表示中は音楽を再生しない")
+	app.active_sensor_provider.input_detected.emit(
+		RhythmTypes.InputType.CHEERS
+	)
+	expect_equal(rhythm_session.last_judgement, "-", "開始前の入力を無視する")
+
+	main_screen.call("start_game")
+	expect_true(main_screen.get("is_game_started"), "開始表示後にゲームを始める")
+	expect_true(main_music_player.playing, "ゲーム開始と同時に音楽を再生する")
 	rhythm_session.cheers_success_count = 3
 	rhythm_session.cheers_failure_count = 1
 	var completed_context := app.run_context
