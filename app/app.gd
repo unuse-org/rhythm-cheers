@@ -1,6 +1,7 @@
 class_name RhythmCheersApp
 extends Node
 
+# 画面をまたいで利用するセンサーの切り替え方法。
 enum SensorMode {
 	KEYBOARD,
 	SERIAL,
@@ -16,24 +17,30 @@ enum SensorMode {
 
 @export var sensor_mode: SensorMode = SensorMode.KEYBOARD
 
+# Appが現在表示している画面と、1プレイ分の共有データを保持する。
 var active_sensor_provider: SensorProvider
 var current_screen_id: SceneFlow.ScreenId = SceneFlow.ScreenId.TITLE
 var current_screen: Node
 var run_context: RunContext
+
+# 同じ乾杯入力で複数画面進まないよう、差し替え中は入力を止める。
 var transition_locked: bool = false
 
 
 func _ready() -> void:
+	# タイトルからリザルトまで同じRunContextを引き回す。
 	run_context = RunContext.new()
 	show_screen(SceneFlow.get_initial_screen())
 	initialize_sensor_provider()
 
 
 func _exit_tree() -> void:
+	# 画面ではなくAppが所有者なので、アプリ終了時にだけ停止する。
 	if active_sensor_provider != null:
 		active_sensor_provider.stop()
 
 
+# SceneFlowが定義するシーンへ現在画面を差し替える。
 func show_screen(screen_id: SceneFlow.ScreenId) -> void:
 	transition_locked = true
 
@@ -52,6 +59,8 @@ func show_screen(screen_id: SceneFlow.ScreenId) -> void:
 	current_screen = packed_scene.instantiate()
 	current_screen_id = screen_id
 
+	# 各画面は必要なメソッドとシグナルだけを共通契約として実装する。
+	# MainはFlowScreenを継承しないため、継承型ではなく存在確認で扱う。
 	if current_screen.has_method("setup"):
 		current_screen.call("setup", run_context)
 
@@ -59,9 +68,11 @@ func show_screen(screen_id: SceneFlow.ScreenId) -> void:
 		current_screen.connect("screen_completed", _on_screen_completed)
 
 	screen_container.add_child(current_screen)
+	# 新しい画面へ遷移元の入力が届かないよう、次の処理単位で解除する。
 	call_deferred("_unlock_transition")
 
 
+# 選択したSensorProviderだけを起動し、入力をAppへ集約する。
 func initialize_sensor_provider() -> void:
 	keyboard_sensor_provider.process_mode = Node.PROCESS_MODE_DISABLED
 	serial_sensor_provider.process_mode = Node.PROCESS_MODE_DISABLED
@@ -89,6 +100,7 @@ func initialize_sensor_provider() -> void:
 func receive_sensor_input(
 	sensor_input_type: RhythmTypes.InputType
 ) -> void:
+	# Appは入力内容を解釈せず、表示中の画面だけへ転送する。
 	if transition_locked or current_screen == null:
 		return
 
@@ -97,6 +109,7 @@ func receive_sensor_input(
 
 
 func _on_screen_completed(payload: Dictionary) -> void:
+	# 完了通知が重複しても、遷移開始後の通知は無視する。
 	if transition_locked:
 		return
 
@@ -104,6 +117,7 @@ func _on_screen_completed(payload: Dictionary) -> void:
 
 	var next_screen_id := SceneFlow.get_next_screen(current_screen_id)
 
+	# RESULTからTITLEへ戻る時点で前回プレイの画像・結果を破棄する。
 	if next_screen_id == SceneFlow.ScreenId.TITLE:
 		run_context.clear()
 		run_context = RunContext.new()
@@ -111,9 +125,19 @@ func _on_screen_completed(payload: Dictionary) -> void:
 	show_screen(next_screen_id)
 
 
+# 画面固有の完了データを、画面間で共有するRunContextへ反映する。
 func apply_screen_payload(payload: Dictionary) -> void:
 	if payload.get("tutorial_completed", false):
 		run_context.tutorial_completed = true
+
+	if payload.has("cheers_success_count"):
+		run_context.cheers_success_count = payload["cheers_success_count"]
+
+	if payload.has("cheers_failure_count"):
+		run_context.cheers_failure_count = payload["cheers_failure_count"]
+
+	if payload.has("result_value"):
+		run_context.result_value = payload["result_value"]
 
 
 func _unlock_transition() -> void:

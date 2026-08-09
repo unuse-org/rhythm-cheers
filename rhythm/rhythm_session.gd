@@ -30,6 +30,10 @@ var current_input_beat: float = 0.0
 # 最後の判定結果
 var last_judgement: String = "-"
 
+# 1曲中の乾杯結果。入力確定時だけ更新し、途中入力は数えない。
+var cheers_success_count: int = 0
+var cheers_failure_count: int = 0
+
 # RhythmChartを読み込む
 func configure(new_chart: RhythmChart) -> void:
 	# duplicate()でコピーすることで、RhythmChartの内容を変更しても元の譜面に影響しないようにする
@@ -43,6 +47,8 @@ func configure(new_chart: RhythmChart) -> void:
 	input_expected = false
 	current_input_beat = 0.0
 	last_judgement = "-"
+	cheers_success_count = 0
+	cheers_failure_count = 0
 
 
 # 再生時刻までに発生した譜面イベントとMISSを処理する
@@ -151,6 +157,8 @@ func judge_input_timing(song_time: float) -> bool:
 func complete_input(judgement: String) -> void:
 	set_judgement(judgement)
 	input_expected = false
+	# PERFECTとGOODはいずれも乾杯成功として集計する。
+	cheers_success_count += 1
 	change_character_state(RhythmTypes.CharacterState.SUCCESS)
 	input_resolved.emit(
 		current_input_beat,
@@ -176,6 +184,8 @@ func process_missed_input(song_time: float) -> void:
 
 	set_judgement(judgement)
 	input_expected = false
+	# 入力受付時間を過ぎた時点で、1回の失敗として確定する。
+	cheers_failure_count += 1
 	change_character_state(RhythmTypes.CharacterState.FAILURE)
 	input_resolved.emit(
 		current_input_beat,

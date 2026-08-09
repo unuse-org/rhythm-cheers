@@ -22,6 +22,7 @@ func test_app_flow() -> void:
 	root.add_child(app)
 	await process_frame
 
+	# 1周目: TITLEからMAINまで、共有センサーで順番に進む。
 	expect_equal(
 		app.current_screen_id,
 		SceneFlow.ScreenId.TITLE,
@@ -69,11 +70,75 @@ func test_app_flow() -> void:
 		"チュートリアル完了状態を引き継ぐ"
 	)
 
-	var music_player := app.current_screen.get_node(
-		"MusicPlayer"
-	) as AudioStreamPlayer
-	music_player.stop()
-	music_player.stream = null
+	var main_screen := app.current_screen
+	var rhythm_session := main_screen.get_node(
+		"RhythmSession"
+	) as RhythmSession
+	rhythm_session.cheers_success_count = 3
+	rhythm_session.cheers_failure_count = 1
+	var completed_context := app.run_context
+
+	# 曲終了を再現し、重複通知されてもRESULTを越えないことを確認する。
+	main_screen.call("finish_game")
+	main_screen.call("finish_game")
+	await process_frame
+	expect_equal(
+		app.current_screen_id,
+		SceneFlow.ScreenId.RESULT,
+		"メイン終了後にリザルトへ進む"
+	)
+	expect_equal(app.run_context.cheers_success_count, 3, "成功数を引き継ぐ")
+	expect_equal(app.run_context.cheers_failure_count, 1, "失敗数を引き継ぐ")
+	expect_equal(app.run_context.result_value, 300, "暫定結果値を計算する")
+	expect_true(
+		not is_instance_valid(main_screen),
+		"メイン画面を遷移後に破棄する"
+	)
+
+	var result_screen := app.current_screen as ResultScreen
+	expect_true(
+		"成功: 3" in result_screen.score_label.text,
+		"リザルト画面に成功数を表示する"
+	)
+	expect_true(
+		"失敗: 1" in result_screen.score_label.text,
+		"リザルト画面に失敗数を表示する"
+	)
+
+	app.active_sensor_provider.input_detected.emit(
+		RhythmTypes.InputType.CHEERS
+	)
+	app.active_sensor_provider.input_detected.emit(
+		RhythmTypes.InputType.CHEERS
+	)
+	await process_frame
+	expect_equal(
+		app.current_screen_id,
+		SceneFlow.ScreenId.TITLE,
+		"リザルトからタイトルへ戻る"
+	)
+	expect_true(
+		app.run_context != completed_context,
+		"タイトルへ戻る際にRunContextを作り直す"
+	)
+	expect_equal(app.run_context.cheers_success_count, 0, "成功数を初期化する")
+	expect_equal(app.run_context.cheers_failure_count, 0, "失敗数を初期化する")
+	expect_true(
+		not app.run_context.tutorial_completed,
+		"チュートリアル状態を初期化する"
+	)
+
+	# 2周目: 新しいRunContextで再びゲームを始められる。
+	app.active_sensor_provider.input_detected.emit(
+		RhythmTypes.InputType.CHEERS
+	)
+	await process_frame
+	expect_equal(
+		app.current_screen_id,
+		SceneFlow.ScreenId.FACE_CAPTURE,
+		"2周目もタイトルから開始できる"
+	)
+
 	await create_timer(0.1).timeout
 	app.free()
 	await process_frame

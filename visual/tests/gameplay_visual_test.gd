@@ -80,6 +80,8 @@ func test_character_follows_chart(chart: RhythmChart) -> void:
 		RhythmTypes.CharacterState.SUCCESS,
 		"CHEERS入力成功時にCharacterがSUCCESSになる"
 	)
+	expect_equal(session.cheers_success_count, 1, "成功回数を記録する")
+	expect_equal(session.cheers_failure_count, 0, "成功時は失敗回数を増やさない")
 
 	session.advance(session.timing.beat_to_seconds(3.0))
 	expect_equal(
@@ -111,6 +113,8 @@ func test_missed_cheers(chart: RhythmChart) -> void:
 		session.last_judgement.begins_with("MISS"),
 		"CHEERS入力がなければMISSを記録する"
 	)
+	expect_equal(session.cheers_success_count, 0, "MISS時は成功回数を増やさない")
+	expect_equal(session.cheers_failure_count, 1, "MISS回数を記録する")
 
 	session.advance(session.timing.beat_to_seconds(3.0))
 	expect_equal(
