@@ -1,11 +1,14 @@
 /**
- * ESP-NOW 加速度送信側
+ * ESP-NOW 加速度送信側（Receiver とコメント書式を揃えた版）
  * Device : M5StickC Plus2
  * Board  : m5stick-c (PlatformIO)
  *
+ * 【シリアル出力フォーマット】
+ * [Sender] X:0.123 Y:-0.456 Z:9.789  OK|FAIL
+ *
  * 【手順】
- * 1. 先に Receiver を書き込み、シリアルモニタで MAC アドレスを確認する
- * 2. 下の RECEIVER_MAC を受信側の MAC アドレスに書き換える
+ * 1. 先に Receiver を書き込み、シリアルモニタで AP MAC アドレスを確認する
+ * 2. 下の RECEIVER_MAC を受信側の AP MAC に書き換える
  * 3. このスケッチを書き込む
  */
 
@@ -19,26 +22,37 @@
 // =============================================
 static constexpr uint8_t RECEIVER_MAC[6] = {0x00, 0x4B, 0x12, 0xA2, 0x4C, 0x5D};
 
-// 送受信共通のデータ構造体
+// =============================================
+// 送受信共通データ構造体（Receiver と同じにすること）
+// =============================================
 typedef struct {
     float accX;
     float accY;
     float accZ;
 } AccelData;
 
-// --------------- グローバル変数 ---------------
+// =============================================
+// グローバル変数
+// =============================================
 static AccelData      g_data;
 static esp_now_peer_info_t g_peerInfo;
 static volatile bool  g_sendSuccess = false;
 static uint32_t       g_sendCount   = 0;
 
-// --------------- コールバック ---------------
+/**
+ * @brief 送信結果コールバック。
+ *
+ * @param mac_addr 送信先 MAC アドレス（未使用）
+ * @param status 送信ステータス
+ */
 void onDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
 {
     g_sendSuccess = (status == ESP_NOW_SEND_SUCCESS);
 }
 
-// --------------- 画面描画 ---------------
+// =============================================
+// 画面描画
+// =============================================
 void drawDisplay()
 {
     M5.Lcd.fillScreen(BLACK);
@@ -58,7 +72,9 @@ void drawDisplay()
                   g_sendCount);
 }
 
-// --------------- setup ---------------
+// =============================================
+// setup(): ハードウェア、WiFi、ESP-NOW を初期化
+// =============================================
 void setup()
 {
     M5.begin();
@@ -106,7 +122,9 @@ void setup()
     Serial.println("[Sender] Ready. Sending @ 10 Hz");
 }
 
-// --------------- loop ---------------
+// =============================================
+// loop(): 加速度取得・送信・表示更新
+// =============================================
 void loop()
 {
     M5.update();
@@ -122,7 +140,7 @@ void loop()
         g_sendCount++;
     }
 
-    // シリアル出力
+    // シリアル出力（簡易フォーマット）
     Serial.printf("[Sender] X:%.3f Y:%.3f Z:%.3f  %s\n",
                   g_data.accX, g_data.accY, g_data.accZ,
                   g_sendSuccess ? "OK" : "FAIL");

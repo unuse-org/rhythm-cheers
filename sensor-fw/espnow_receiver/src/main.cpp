@@ -60,55 +60,82 @@ static volatile RecvQueue g_queue = {};
 static uint8_t   g_dispSender  = 0;     // 現在表示中の Sender インデックス
 static uint32_t  g_lastDisplay = 0;
 
-// =============================================
-// ユーティリティ
-// =============================================
+/**
+ * @brief MACアドレスを読みやすい文字列（"AA:BB:CC:DD:EE:FF"）に変換する。
+ *
+ * @param mac 6バイトのMACアドレスへのポインタ。
+ * @return String フォーマット済みのMAC文字列。
+ */
 String macToStr(const uint8_t *mac)
 {
     char buf[18];
-    snprintf(buf, sizeof(buf), "%02X:%02X:%02X:%02X:%02X:%02X",
-             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    snprintf(buf, sizeof(buf), "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+
     return String(buf);
 }
 
+/**
+ * @brief 2つのMACアドレスが等しいか比較する。
+ *
+ * @param a 1つ目の6バイトMACアドレスへのポインタ。
+ * @param b 2つ目の6バイトMACアドレスへのポインタ。
+ * @return true 等しければtrue、そうでなければfalse。
+ */
 bool macEquals(const uint8_t *a, const uint8_t *b)
 {
     return memcmp(a, b, 6) == 0;
 }
 
+/**
+ * @brief MACアドレスで送信元エントリを検索し、なければ新規追加する。
+ *
+ * @param mac 検索または追加する6バイトMACアドレスへのポインタ。
+ * @return 成功時はエントリのインデックス、テーブルが満杯なら-1を返す。
+ */
 int findOrAddSender(const uint8_t *mac)
 {
     for (int i = 0; i < g_senderCount; i++) {
         if (macEquals(g_senders[i].mac, mac)) return i;
     }
+
     if (g_senderCount >= MAX_SENDERS) return -1;
+
     int idx = g_senderCount++;
     memcpy(g_senders[idx].mac, mac, 6);
     g_senders[idx].active    = true;
     g_senders[idx].recvCount = 0;
     Serial.printf("[Receiver] New sender #%d: %s\n", idx + 1, macToStr(mac).c_str());
+
     return idx;
 }
 
-// =============================================
-// ESP-NOW コールバック
-// arduino-esp32 2.x / espressif32@6.x 旧 API
-// =============================================
+/**
+ * @brief ESP-NOW受信コールバック — 受信した加速度データをキューへ格納する。
+ *
+ * @param mac_addr 送信元の6バイトMACアドレスへのポインタ。
+ * @param data 受信ペイロードへのポインタ。
+ * @param len 受信ペイロードの長さ（バイト）。
+ */
 void onDataReceived(const uint8_t *mac_addr, const uint8_t *data, int len)
 {
     if (len != sizeof(AccelData)) return;
     if (g_queue.valid) return;
+
     memcpy((void *)g_queue.mac,   mac_addr, 6);
     memcpy((void *)&g_queue.data, data,     sizeof(AccelData));
+
     g_queue.valid = true;
 }
 
-// =============================================
-// JSON シリアル出力
-// =============================================
+/**
+ * @brief 送信元データをJSON形式でSerialに出力する。
+ *
+ * @param idx `g_senders`テーブル内の送信元インデックス。
+ */
 void sendJson(int idx)
 {
     SenderEntry &s = g_senders[idx];
+
     Serial.printf(
         "{\"id\":%d,\"mac\":\"%s\",\"x\":%.4f,\"y\":%.4f,\"z\":%.4f,\"count\":%lu}\n",
         idx + 1,
@@ -120,10 +147,9 @@ void sendJson(int idx)
     );
 }
 
-// =============================================
-// LCD 画面描画
-// =============================================
-// Sender が 0 台のとき：待機画面
+/**
+ * @brief 送信元がいないときの待機画面をLCDに描画する。
+ */
 void drawWaiting()
 {
     M5.Lcd.fillScreen(BLACK);
@@ -138,7 +164,11 @@ void drawWaiting()
     M5.Lcd.printf("AP MAC:\n%s", WiFi.softAPmacAddress().c_str());
 }
 
-// Sender データ表示（1台分）
+/**
+ * @brief 単一の送信元データをLCDに描画する。
+ *
+ * @param idx 表示する送信元のインデックス。
+ */
 void drawSender(uint8_t idx)
 {
     if (idx >= g_senderCount) return;
@@ -167,9 +197,9 @@ void drawSender(uint8_t idx)
     M5.Lcd.printf("%s", macToStr(s.mac).c_str());
 }
 
-// =============================================
-// setup
-// =============================================
+/**
+ * @brief Arduinoのsetup(): ハードウェア、WiFi AP、ESP-NOWを初期化する。
+ */
 void setup()
 {
     M5.begin();
@@ -224,6 +254,9 @@ void setup()
 // =============================================
 // loop
 // =============================================
+/**
+ * @brief メインループ: ボタン入力、受信キュー処理、表示更新を行う。
+ */
 void loop()
 {
     M5.update();
@@ -238,6 +271,7 @@ void loop()
     if (g_queue.valid) {
         uint8_t   mac[6];
         AccelData data;
+        
         memcpy(mac,   (void *)g_queue.mac,   6);
         memcpy(&data, (void *)&g_queue.data, sizeof(AccelData));
         g_queue.valid = false;
