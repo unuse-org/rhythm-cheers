@@ -1,0 +1,76 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://camera/tests/manual_web_camera_test.gd" id="1_script"]
+
+[node name="ManualWebCameraTest" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.055, 0.09, 0.12, 1)
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 80
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 80
+
+[node name="Content" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 24
+alignment = 1
+
+[node name="Title" type="Label" parent="Margin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 36
+text = "Webカメラ技術検証"
+horizontal_alignment = 1
+
+[node name="Preview" type="TextureRect" parent="Margin/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(640, 720)
+layout_mode = 2
+texture_filter = 1
+expand_mode = 1
+stretch_mode = 5
+flip_h = false
+
+[node name="StatusLabel" type="Label" parent="Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Webカメラを起動しています。"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="CaptureButton" type="Button" parent="Margin/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "現在のフレームを撮影"
+
+[node name="RetryButton" type="Button" parent="Margin/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "再試行"
