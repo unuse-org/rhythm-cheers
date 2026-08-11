@@ -115,6 +115,9 @@ func test_placeholder_screens() -> void:
 			face_capture.set_camera_source(
 				FakeCameraCaptureSource.new()
 			)
+		elif screen_id == SceneFlow.ScreenId.TITLE:
+			var title := screen as TitleScreen
+			title.door_open_duration = 0.0
 
 		root.add_child(screen)
 		screen.receive_sensor_input(RhythmTypes.InputType.CHEERS)

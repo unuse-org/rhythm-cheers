@@ -1,8 +1,11 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://dbw41b186wrqi"]
 
-[ext_resource type="Script" path="res://screens/title/title_screen.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://bu1ocvv1hjt8w" path="res://screens/title/title_screen.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://u4lnh70ds2a" path="res://assets/images/background.png" id="2_42e70"]
+[ext_resource type="Texture2D" uid="uid://bunquhyrqylin" path="res://assets/images/door.png" id="2_door"]
+[ext_resource type="Texture2D" uid="uid://k215bytis33p" path="res://assets/images/start.png" id="3_start"]
 
-[node name="TitleScreen" type="Control"]
+[node name="TitleScreen" type="Control" unique_id=697945681]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,7 +14,15 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_script")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="TextureRect" parent="." unique_id=15091810]
+layout_mode = 0
+offset_right = 718.0
+offset_bottom = 1285.0
+texture = ExtResource("2_42e70")
+expand_mode = 1
+
+[node name="Door" type="TextureRect" parent="." unique_id=514589402]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -19,37 +30,21 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.12, 0.055, 0.025, 1)
+texture = ExtResource("2_door")
+expand_mode = 1
 
-[node name="Center" type="CenterContainer" parent="."]
+[node name="ActionButton" type="TextureButton" parent="." unique_id=1461216229]
+unique_name_in_owner = true
 layout_mode = 1
-anchors_preset = 15
+anchors_preset = -1
+anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="Content" type="VBoxContainer" parent="Center"]
-custom_minimum_size = Vector2(520, 0)
-layout_mode = 2
-theme_override_constants/separation = 32
-alignment = 1
-
-[node name="Title" type="Label" parent="Center/Content"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 56
-text = "乾杯リズム"
-horizontal_alignment = 1
-
-[node name="Description" type="Label" parent="Center/Content"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 24
-text = "乾杯してゲームを始めます"
-horizontal_alignment = 1
-
-[node name="ActionButton" type="Button" parent="Center/Content"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 72)
-layout_mode = 2
-theme_override_font_sizes/font_size = 24
-text = "乾杯してスタート"
+offset_left = 28.0
+offset_top = -312.0
+offset_right = -28.0
+offset_bottom = -230.0
+grow_vertical = 0
+mouse_default_cursor_shape = 2
+texture_normal = ExtResource("3_start")
+ignore_texture_size = true

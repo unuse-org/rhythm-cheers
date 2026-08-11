@@ -32,6 +32,8 @@ func test_app_flow() -> void:
 		app.active_sensor_provider is KeyboardSensorProvider,
 		"初期状態ではキーボードセンサーを共有する"
 	)
+	var title := app.current_screen as TitleScreen
+	title.door_open_duration = 0.0
 
 	app.active_sensor_provider.input_detected.emit(
 		RhythmTypes.InputType.CHEERS
@@ -190,6 +192,8 @@ func test_app_flow() -> void:
 	)
 
 	# 2周目: 新しいRunContextで再びゲームを始められる。
+	var replay_title := app.current_screen as TitleScreen
+	replay_title.door_open_duration = 0.0
 	app.active_sensor_provider.input_detected.emit(
 		RhythmTypes.InputType.CHEERS
 	)
