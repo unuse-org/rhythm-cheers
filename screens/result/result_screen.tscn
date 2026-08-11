@@ -48,11 +48,38 @@ theme_override_font_sizes/font_size = 30
 text = "成功: --\n失敗: --\n結果: --"
 horizontal_alignment = 1
 
-[node name="FacePlaceholder" type="ColorRect" parent="Center/Content"]
-custom_minimum_size = Vector2(300, 300)
+[node name="FaceFrame" type="ColorRect" parent="Center/Content"]
+custom_minimum_size = Vector2(400, 300)
 layout_mode = 2
 size_flags_horizontal = 4
 color = Color(0.24, 0.22, 0.16, 1)
+
+[node name="FacePreview" type="TextureRect" parent="Center/Content/FaceFrame"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture_filter = 1
+expand_mode = 1
+stretch_mode = 5
+
+[node name="FaceStatusLabel" type="Label" parent="Center/Content/FaceFrame"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 22
+text = "顔写真なし"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="ActionButton" type="Button" parent="Center/Content"]
 unique_name_in_owner = true

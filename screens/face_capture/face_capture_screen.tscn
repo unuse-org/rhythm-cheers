@@ -1,8 +1,31 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://cwo0fbuq2eywl"]
 
-[ext_resource type="Script" path="res://screens/face_capture/face_capture_screen.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://b7yy5s5hbyume" path="res://screens/face_capture/face_capture_screen.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://u4lnh70ds2a" path="res://assets/images/background.png" id="2_dnffq"]
+[ext_resource type="Texture2D" uid="uid://b8q8vahk6gon2" path="res://assets/images/camera.png" id="3_t3ymx"]
+[ext_resource type="VideoStream" uid="uid://dp38thle4jm4w" path="res://assets/images/shutter01.ogv" id="4_shutter"]
+[ext_resource type="Shader" path="res://camera/shutter_chroma_key.gdshader" id="5_chroma"]
 
-[node name="FaceCaptureScreen" type="Control"]
+[sub_resource type="StyleBoxFlat" id="StyleBox_face_guide"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(1, 0.9, 0.48, 0.9)
+corner_radius_top_left = 72
+corner_radius_top_right = 72
+corner_radius_bottom_right = 72
+corner_radius_bottom_left = 72
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_chroma"]
+shader = ExtResource("5_chroma")
+shader_parameter/source_aspect = 1.7777778
+shader_parameter/target_aspect = 1.0
+shader_parameter/key_start = 0.12
+shader_parameter/key_end = 0.38
+
+[node name="FaceCaptureScreen" type="Control" unique_id=135876188]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,7 +34,138 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_script")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="TextureRect" parent="." unique_id=330721581]
+layout_mode = 0
+offset_right = 789.0
+offset_bottom = 1280.0
+texture = ExtResource("2_dnffq")
+
+[node name="Camera" type="TextureRect" parent="." unique_id=634998453]
+layout_mode = 0
+offset_left = 156.0
+offset_top = 254.46619
+offset_right = 614.0
+offset_bottom = 1279.0
+texture = ExtResource("3_t3ymx")
+expand_mode = 1
+
+[node name="Title" type="Label" parent="." unique_id=36632973]
+layout_mode = 0
+offset_left = 109.0
+offset_top = 109.0
+offset_right = 669.0
+offset_bottom = 234.0
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_outline_color = Color(1, 1, 1, 1)
+theme_override_constants/outline_size = 22
+theme_override_font_sizes/font_size = 91
+text = "顔写真を撮影"
+horizontal_alignment = 1
+
+[node name="PreviewFrame" type="Control" parent="." unique_id=1540869649]
+anchors_preset = 0
+offset_left = 195.0
+offset_top = 405.0
+offset_right = 623.0
+offset_bottom = 1025.0
+size_flags_horizontal = 4
+
+[node name="PreviewBackground" type="ColorRect" parent="PreviewFrame" unique_id=268199247]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.187
+anchor_top = 0.066
+anchor_right = 0.89400005
+anchor_bottom = 1.0
+offset_left = -74.035995
+offset_top = -1.9199982
+offset_right = 0.1199646
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.16078432, 1, 0.23921569, 1)
+
+[node name="Preview" type="TextureRect" parent="PreviewFrame" unique_id=167277516]
+unique_name_in_owner = true
+texture_filter = 1
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.187
+anchor_top = 0.066
+anchor_right = 0.90000004
+anchor_bottom = 0.99700004
+offset_left = -75.035995
+offset_top = -2.9199982
+offset_right = -3.0517578e-05
+offset_bottom = 2.8599854
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 6
+
+[node name="FaceGuide" type="Panel" parent="PreviewFrame" unique_id=1250984249]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.19100001
+anchor_top = 0.071
+anchor_right = 0.87900007
+anchor_bottom = 0.9
+offset_left = -33.74801
+offset_top = 114.979965
+offset_right = -56.080048
+offset_bottom = -42.798096
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBox_face_guide")
+
+[node name="RetryButton" type="Button" parent="." unique_id=1065998277]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 0
+offset_left = 227.0
+offset_top = 1033.0
+offset_right = 554.0
+offset_bottom = 1100.0
+focus_mode = 0
+theme_override_font_sizes/font_size = 43
+flat = true
+
+[node name="ActionButton" type="Button" parent="." unique_id=1384841329]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 0
+offset_left = 225.0
+offset_top = 1027.0
+offset_right = 562.0
+offset_bottom = 1100.0
+focus_mode = 0
+theme_override_font_sizes/font_size = 43
+flat = true
+
+[node name="StatusLabel" type="Label" parent="." unique_id=225549602]
+unique_name_in_owner = true
+z_index = 10
+layout_mode = 0
+offset_left = 80.0
+offset_top = 1115.0
+offset_right = 700.0
+offset_bottom = 1250.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.85)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 28
+text = "Webカメラを起動しています。"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="ShutterPlayer" type="VideoStreamPlayer" parent="." unique_id=1154642332]
+unique_name_in_owner = true
+visible = false
+z_index = 100
+material = SubResource("ShaderMaterial_chroma")
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -19,42 +173,5 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.055, 0.09, 0.12, 1)
-
-[node name="Center" type="CenterContainer" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="Content" type="VBoxContainer" parent="Center"]
-custom_minimum_size = Vector2(560, 0)
-layout_mode = 2
-theme_override_constants/separation = 28
-alignment = 1
-
-[node name="Title" type="Label" parent="Center/Content"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 44
-text = "顔写真を撮影"
-horizontal_alignment = 1
-
-[node name="CameraPlaceholder" type="ColorRect" parent="Center/Content"]
-custom_minimum_size = Vector2(520, 620)
-layout_mode = 2
-color = Color(0.16, 0.2, 0.24, 1)
-
-[node name="Description" type="Label" parent="Center/Content"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 22
-text = "現在はカメラ未接続の仮画面です"
-horizontal_alignment = 1
-
-[node name="ActionButton" type="Button" parent="Center/Content"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 72)
-layout_mode = 2
-theme_override_font_sizes/font_size = 24
-text = "撮影完了（仮）"
+stream = ExtResource("4_shutter")
+expand = true

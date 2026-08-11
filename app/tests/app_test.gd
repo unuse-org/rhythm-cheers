@@ -46,6 +46,14 @@ func test_app_flow() -> void:
 		"連続入力でも顔撮影より先へ進まない"
 	)
 
+	var face_capture := app.current_screen as FaceCaptureScreen
+	face_capture.review_duration = 0.0
+	face_capture.shutter_effect_enabled = false
+	expect_true(
+		face_capture.camera_source is FakeCameraCaptureSource,
+		"ヘッドレステストではFakeカメラを利用する"
+	)
+
 	app.active_sensor_provider.input_detected.emit(
 		RhythmTypes.InputType.CHEERS
 	)
@@ -54,6 +62,10 @@ func test_app_flow() -> void:
 		app.current_screen_id,
 		SceneFlow.ScreenId.TUTORIAL,
 		"顔撮影からチュートリアルへ進む"
+	)
+	expect_true(
+		app.run_context.captured_face_image != null,
+		"撮影画像をRunContextへ引き継ぐ"
 	)
 
 	var tutorial := app.current_screen as TutorialScreen
@@ -145,6 +157,10 @@ func test_app_flow() -> void:
 		"失敗: 1" in result_screen.score_label.text,
 		"リザルト画面に失敗数を表示する"
 	)
+	expect_true(
+		result_screen.face_preview.texture != null,
+		"リザルト画面に撮影画像を表示する"
+	)
 
 	app.active_sensor_provider.input_detected.emit(
 		RhythmTypes.InputType.CHEERS
@@ -167,6 +183,10 @@ func test_app_flow() -> void:
 	expect_true(
 		not app.run_context.tutorial_completed,
 		"チュートリアル状態を初期化する"
+	)
+	expect_true(
+		app.run_context.captured_face_image == null,
+		"撮影画像を初期化する"
 	)
 
 	# 2周目: 新しいRunContextで再びゲームを始められる。

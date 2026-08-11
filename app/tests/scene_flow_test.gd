@@ -107,6 +107,15 @@ func test_placeholder_screens() -> void:
 
 		screen.setup(RunContext.new())
 		screen.screen_completed.connect(_on_screen_completed)
+
+		if screen_id == SceneFlow.ScreenId.FACE_CAPTURE:
+			var face_capture := screen as FaceCaptureScreen
+			face_capture.review_duration = 0.0
+			face_capture.shutter_effect_enabled = false
+			face_capture.set_camera_source(
+				FakeCameraCaptureSource.new()
+			)
+
 		root.add_child(screen)
 		screen.receive_sensor_input(RhythmTypes.InputType.CHEERS)
 
