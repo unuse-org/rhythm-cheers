@@ -8,9 +8,13 @@ extends Control
 # 成功時だけ表示する、ユーザー側のジョッキと衝突エフェクト
 @onready var player_cheers: TextureRect = $PlayerCheers
 @onready var cheers_effect: TextureRect = $CheersEffect
-# 「乾杯」「失杯」を1文字ずつ切り替えるためのラベル
-@onready var first_cheers_character: Label = $CheersText/FirstCharacter
-@onready var second_cheers_character: Label = $CheersText/SecondCharacter
+# 譜面状態に合わせて「乾」「杯」と失敗印を組み合わせる画像群
+@onready var cheers_kan: TextureRect = $CheersText/Kan
+@onready var cheers_pai: TextureRect = $CheersText/Pai
+@onready var cheers_success: TextureRect = $CheersText/Success
+@onready var cheers_failure_overlay: TextureRect = (
+	$CheersText/Kan/FailureOverlay
+)
 
 # 現在の乾杯対象になっている席のCharacterノード
 var character: TextureRect
@@ -28,15 +32,7 @@ var character: TextureRect
 @export_category("Horizontal Progress")
 @export_range(720.0, 1440.0, 1.0) var opponent_spacing: float = 720.0
 
-const BASE_TEXT_COLOR: Color = Color(1.0, 0.91, 0.45)
-const BASE_OUTLINE_COLOR: Color = Color(0.95, 0.35, 0.12)
-const SUCCESS_TEXT_COLOR: Color = Color(1.0, 0.78, 0.15)
-const SUCCESS_OUTLINE_COLOR: Color = Color(0.75, 0.10, 0.50)
-const FAILURE_TEXT_COLOR: Color = Color.WHITE
-const FAILURE_OUTLINE_COLOR: Color = Color(0.05, 0.25, 0.45)
 const FAILURE_CHARACTER_MODULATE: Color = Color(0.55, 0.65, 0.75)
-const BASE_OUTLINE_SIZE: int = 12
-const RESULT_OUTLINE_SIZE: int = 18
 
 # 譜面の進行と人物状態を提供するセッション
 var rhythm_session: RhythmSession
@@ -263,7 +259,7 @@ func set_character_state(state: RhythmTypes.CharacterState) -> void:
 				character.texture = character_normal_texture
 				character.modulate = FAILURE_CHARACTER_MODULATE
 
-	update_cheers_text(state)
+	update_cheers_callout(state)
 	update_result_visuals(state)
 
 
@@ -279,69 +275,25 @@ func update_result_visuals(state: RhythmTypes.CharacterState) -> void:
 	cheers_effect.visible = succeeded
 
 
-# NORMAL → 乾 → 乾杯 → 乾杯または失杯、という文字遷移を作る
-func update_cheers_text(state: RhythmTypes.CharacterState) -> void:
-	first_cheers_character.text = "乾"
-	second_cheers_character.text = "杯"
-	first_cheers_character.visible = false
-	second_cheers_character.visible = false
-	set_cheers_text_style(
-		first_cheers_character,
-		BASE_TEXT_COLOR,
-		BASE_OUTLINE_COLOR,
-		BASE_OUTLINE_SIZE
-	)
-	set_cheers_text_style(
-		second_cheers_character,
-		BASE_TEXT_COLOR,
-		BASE_OUTLINE_COLOR,
-		BASE_OUTLINE_SIZE
-	)
+# NORMAL → 乾 → 乾杯と組み立て、失敗時は「乾」の上に「失」を重ねる
+func update_cheers_callout(state: RhythmTypes.CharacterState) -> void:
+	cheers_kan.visible = false
+	cheers_pai.visible = false
+	cheers_success.visible = false
+	cheers_failure_overlay.visible = false
 
 	match state:
 		RhythmTypes.CharacterState.PREPARE:
-			first_cheers_character.visible = true
+			cheers_kan.visible = true
 
 		RhythmTypes.CharacterState.JUDGING:
-			first_cheers_character.visible = true
-			second_cheers_character.visible = true
+			cheers_kan.visible = true
+			cheers_pai.visible = true
 
 		RhythmTypes.CharacterState.SUCCESS:
-			first_cheers_character.visible = true
-			second_cheers_character.visible = true
-			set_cheers_text_style(
-				first_cheers_character,
-				SUCCESS_TEXT_COLOR,
-				SUCCESS_OUTLINE_COLOR,
-				RESULT_OUTLINE_SIZE
-			)
-			set_cheers_text_style(
-				second_cheers_character,
-				SUCCESS_TEXT_COLOR,
-				SUCCESS_OUTLINE_COLOR,
-				RESULT_OUTLINE_SIZE
-			)
+			cheers_success.visible = true
 
 		RhythmTypes.CharacterState.FAILURE:
-			# 「乾」を「失」へ置き換え、右側の「杯」は維持する
-			first_cheers_character.text = "失"
-			first_cheers_character.visible = true
-			second_cheers_character.visible = true
-			set_cheers_text_style(
-				first_cheers_character,
-				FAILURE_TEXT_COLOR,
-				FAILURE_OUTLINE_COLOR,
-				RESULT_OUTLINE_SIZE
-			)
-
-
-# Labelの色と縁取りを状態に応じて上書きする
-func set_cheers_text_style(
-	label: Label,
-	font_color: Color,
-	outline_color: Color,
-	outline_size: int
-) -> void:
-	label.add_theme_color_override("font_color", font_color)
-	label.add_theme_color_override("font_outline_color", outline_color)
-	label.add_theme_constant_override("outline_size", outline_size)
+			cheers_kan.visible = true
+			cheers_pai.visible = true
+			cheers_failure_overlay.visible = true

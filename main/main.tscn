@@ -5,7 +5,7 @@
 [ext_resource type="AudioStream" uid="uid://ce6ofcmq51idr" path="res://assets/audio/test_kanpai_bgm.mp3" id="3_4dugh"]
 [ext_resource type="Script" uid="uid://bk5um3l1445uq" path="res://rhythm/rhythm_session.gd" id="6_session"]
 [ext_resource type="Script" uid="uid://ckcyllbfub7vd" path="res://debug/rhythm_debug_display.gd" id="7_debug_display"]
-[ext_resource type="PackedScene" path="res://visual/gameplay_visual.tscn" id="8_gameplay_visual"]
+[ext_resource type="PackedScene" uid="uid://cc0imib80ift1" path="res://visual/gameplay_visual.tscn" id="8_gameplay_visual"]
 
 [node name="Main" type="Node2D" unique_id=1930772962]
 script = ExtResource("1_3wy1v")
@@ -17,8 +17,6 @@ stream = ExtResource("3_4dugh")
 script = ExtResource("6_session")
 
 [node name="GameplayVisual" parent="." unique_id=1472249063 instance=ExtResource("8_gameplay_visual")]
-layout_mode = 3
-anchors_preset = 0
 
 [node name="RhythmDebugDisplay" type="Node2D" parent="." unique_id=1233133181]
 z_index = 100
@@ -35,7 +33,7 @@ offset_bottom = 23.0
 
 [node name="DebugNotes" type="Node2D" parent="RhythmDebugDisplay" unique_id=664874310]
 
-[node name="StartOverlay" type="ColorRect" parent="."]
+[node name="StartOverlay" type="ColorRect" parent="." unique_id=354041636]
 unique_name_in_owner = true
 z_index = 300
 offset_right = 720.0
@@ -43,7 +41,7 @@ offset_bottom = 1280.0
 mouse_filter = 2
 color = Color(0, 0, 0, 0.72)
 
-[node name="Message" type="Label" parent="StartOverlay"]
+[node name="Message" type="Label" parent="StartOverlay" unique_id=429191511]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -52,7 +50,7 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_colors/font_color = Color(1, 0.91, 0.45, 1)
 theme_override_colors/font_outline_color = Color(0.45, 0.08, 0.03, 1)
-theme_override_constants/outline_size = 12
+theme_override_constants/outline_size = 40
 theme_override_font_sizes/font_size = 58
 text = "本番スタート！"
 horizontal_alignment = 1

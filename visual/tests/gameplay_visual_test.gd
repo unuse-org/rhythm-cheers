@@ -135,61 +135,85 @@ func test_cheers_text_transitions(chart: RhythmChart) -> void:
 	root.add_child(visual)
 	visual.configure(session)
 
-	var first_character := visual.first_cheers_character
-	var second_character := visual.second_cheers_character
+	var kan_image := visual.cheers_kan
+	var pai_image := visual.cheers_pai
+	var success_image := visual.cheers_success
+	var failure_overlay := visual.cheers_failure_overlay
 
 	expect_true(
-		not first_character.visible and not second_character.visible,
+		not kan_image.visible
+		and not pai_image.visible
+		and not success_image.visible
+		and not failure_overlay.visible,
 		"NORMALでは乾杯文字を表示しない"
 	)
 
 	session.change_character_state(RhythmTypes.CharacterState.PREPARE)
-	expect_equal(first_character.text, "乾", "PREPAREの1文字目")
-	expect_true(first_character.visible, "PREPAREでは乾を表示する")
+	expect_texture_name(
+		kan_image.texture,
+		"cheers_text_kan.png",
+		"乾の画像素材を使用する"
+	)
+	expect_true(kan_image.visible, "PREPAREでは乾を表示する")
 	expect_true(
-		not second_character.visible,
+		not pai_image.visible,
 		"PREPAREでは杯を表示しない"
 	)
 
 	session.change_character_state(RhythmTypes.CharacterState.JUDGING)
-	expect_equal(first_character.text, "乾", "JUDGINGの1文字目")
-	expect_equal(second_character.text, "杯", "JUDGINGの2文字目")
+	expect_texture_name(
+		pai_image.texture,
+		"cheers_text_pai.png",
+		"杯の画像素材を使用する"
+	)
 	expect_true(
-		first_character.visible and second_character.visible,
+		kan_image.visible and pai_image.visible,
 		"JUDGINGでは乾杯を表示する"
+	)
+	expect_true(
+		not failure_overlay.visible,
+		"JUDGINGでは失敗印を表示しない"
 	)
 
 	session.change_character_state(RhythmTypes.CharacterState.SUCCESS)
-	expect_equal(first_character.text, "乾", "SUCCESSの1文字目")
-	expect_equal(second_character.text, "杯", "SUCCESSの2文字目")
-	expect_equal(
-		first_character.get_theme_color("font_color"),
-		GameplayVisual.SUCCESS_TEXT_COLOR,
-		"SUCCESSでは乾杯の色を豪華にする"
+	expect_texture_name(
+		success_image.texture,
+		"cheers_success.png",
+		"成功専用の乾杯画像を使用する"
 	)
-	expect_equal(
-		second_character.get_theme_constant("outline_size"),
-		GameplayVisual.RESULT_OUTLINE_SIZE,
-		"SUCCESSでは乾杯の縁取りを強くする"
+	expect_true(
+		not kan_image.visible
+		and not pai_image.visible
+		and success_image.visible
+		and not failure_overlay.visible,
+		"SUCCESSでは成功専用の乾杯画像へ切り替える"
 	)
 
 	session.change_character_state(RhythmTypes.CharacterState.FAILURE)
-	expect_equal(first_character.text, "失", "FAILUREの1文字目")
-	expect_equal(second_character.text, "杯", "FAILUREの2文字目")
-	expect_equal(
-		first_character.get_theme_color("font_color"),
-		GameplayVisual.FAILURE_TEXT_COLOR,
-		"FAILUREでは失の色を変更する"
+	expect_texture_name(
+		failure_overlay.texture,
+		"cheers_failure_overlay.png",
+		"失敗印の画像素材を使用する"
+	)
+	expect_true(
+		kan_image.visible
+		and pai_image.visible
+		and not success_image.visible
+		and failure_overlay.visible,
+		"FAILUREでは乾杯の上に失敗印を表示する"
 	)
 	expect_equal(
-		second_character.get_theme_color("font_color"),
-		GameplayVisual.BASE_TEXT_COLOR,
-		"FAILUREでも杯は通常色を維持する"
+		failure_overlay.get_parent(),
+		kan_image,
+		"失敗印を乾の子として重ねる"
 	)
 
 	session.change_character_state(RhythmTypes.CharacterState.NORMAL)
 	expect_true(
-		not first_character.visible and not second_character.visible,
+		not kan_image.visible
+		and not pai_image.visible
+		and not success_image.visible
+		and not failure_overlay.visible,
 		"RETURN_NORMALでは乾杯文字を消す"
 	)
 

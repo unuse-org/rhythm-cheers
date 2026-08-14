@@ -1,11 +1,35 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene format=3 uid="uid://cknq20sbhcji"]
 
-[ext_resource type="Script" path="res://screens/tutorial/tutorial_screen.gd" id="1_script"]
-[ext_resource type="AudioStream" path="res://assets/audio/test_kanpai_bgm.mp3" id="2_music"]
-[ext_resource type="Script" path="res://rhythm/rhythm_session.gd" id="3_session"]
-[ext_resource type="PackedScene" path="res://visual/gameplay_visual.tscn" id="4_visual"]
+[ext_resource type="Script" uid="uid://b7w0jecy5cjd0" path="res://screens/tutorial/tutorial_screen.gd" id="1_script"]
+[ext_resource type="AudioStream" uid="uid://ce6ofcmq51idr" path="res://assets/audio/test_kanpai_bgm.mp3" id="2_music"]
+[ext_resource type="Script" uid="uid://bk5um3l1445uq" path="res://rhythm/rhythm_session.gd" id="3_session"]
+[ext_resource type="PackedScene" uid="uid://cc0imib80ift1" path="res://visual/gameplay_visual.tscn" id="4_visual"]
 
-[node name="TutorialScreen" type="Control"]
+[sub_resource type="StyleBoxFlat" id="StyleBox_intro_card"]
+bg_color = Color(0.08, 0.045, 0.02, 0.94)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(1, 0.72, 0.18, 1)
+corner_radius_top_left = 24
+corner_radius_top_right = 24
+corner_radius_bottom_right = 24
+corner_radius_bottom_left = 24
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_progress"]
+bg_color = Color(0.08, 0.045, 0.02, 0.9)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 0.72, 0.18, 1)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+
+[node name="TutorialScreen" type="Control" unique_id=1789808956]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -15,78 +39,154 @@ grow_vertical = 2
 script = ExtResource("1_script")
 tutorial_music = ExtResource("2_music")
 
-[node name="MusicPlayer" type="AudioStreamPlayer" parent="."]
+[node name="MusicPlayer" type="AudioStreamPlayer" parent="." unique_id=1895685962]
 
-[node name="RhythmSession" type="Node" parent="."]
+[node name="RhythmSession" type="Node" parent="." unique_id=1976485822]
 script = ExtResource("3_session")
 
-[node name="GameplayVisual" parent="." instance=ExtResource("4_visual")]
+[node name="GameplayVisual" parent="." unique_id=539723358 instance=ExtResource("4_visual")]
 layout_mode = 0
 
-[node name="TutorialHud" type="PanelContainer" parent="."]
-z_index = 200
+[node name="IntroTimer" type="Timer" parent="." unique_id=767674032]
+unique_name_in_owner = true
+one_shot = true
+
+[node name="NoticeTimer" type="Timer" parent="." unique_id=2079240487]
+unique_name_in_owner = true
+one_shot = true
+
+[node name="IntroOverlay" type="ColorRect" parent="." unique_id=1523242985]
+unique_name_in_owner = true
+z_index = 250
 layout_mode = 1
-anchors_preset = 10
+anchors_preset = 15
 anchor_right = 1.0
-offset_left = 32.0
-offset_top = 32.0
-offset_right = -32.0
-offset_bottom = 208.0
+anchor_bottom = 1.0
 grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.62)
 
-[node name="Margin" type="MarginContainer" parent="TutorialHud"]
-layout_mode = 2
-theme_override_constants/margin_left = 24
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 24
-theme_override_constants/margin_bottom = 16
+[node name="IntroCard" type="PanelContainer" parent="IntroOverlay" unique_id=1890324754]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -170.0
+offset_right = 300.0
+offset_bottom = 170.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBox_intro_card")
 
-[node name="Content" type="VBoxContainer" parent="TutorialHud/Margin"]
+[node name="Margin" type="MarginContainer" parent="IntroOverlay/IntroCard" unique_id=629282958]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/margin_left = 36
+theme_override_constants/margin_top = 30
+theme_override_constants/margin_right = 36
+theme_override_constants/margin_bottom = 30
 
-[node name="Title" type="Label" parent="TutorialHud/Margin/Content"]
+[node name="Content" type="VBoxContainer" parent="IntroOverlay/IntroCard/Margin" unique_id=1129094827]
 layout_mode = 2
-theme_override_font_sizes/font_size = 34
+theme_override_constants/separation = 22
+alignment = 1
+
+[node name="Title" type="Label" parent="IntroOverlay/IntroCard/Margin/Content" unique_id=1609700348]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.78, 0.2, 1)
+theme_override_colors/font_outline_color = Color(0.3, 0.08, 0.02, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 42
 text = "チュートリアル"
 horizontal_alignment = 1
 
-[node name="ProgressLabel" type="Label" parent="TutorialHud/Margin/Content"]
-unique_name_in_owner = true
+[node name="Guide" type="Label" parent="IntroOverlay/IntroCard/Margin/Content" unique_id=1412309444]
 layout_mode = 2
-theme_override_font_sizes/font_size = 26
-text = "成功 0 / 3"
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 30
+text = "相手の「杯！」に合わせて
+乾杯しよう"
 horizontal_alignment = 1
 
-[node name="StatusLabel" type="Label" parent="TutorialHud/Margin/Content"]
-unique_name_in_owner = true
+[node name="Goal" type="Label" parent="IntroOverlay/IntroCard/Margin/Content" unique_id=313385288]
 layout_mode = 2
-theme_override_font_sizes/font_size = 22
-text = "合図に合わせて乾杯してください"
+theme_override_colors/font_color = Color(0.8, 1, 0.72, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 5
+theme_override_font_sizes/font_size = 24
+text = "3回成功で本番スタート"
 horizontal_alignment = 1
 
-[node name="Instruction" type="Label" parent="."]
+[node name="ProgressPanel" type="PanelContainer" parent="." unique_id=426330120]
+unique_name_in_owner = true
+visible = false
 z_index = 200
 layout_mode = 1
 anchors_preset = 12
+anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 32.0
-offset_top = -96.0
-offset_right = -32.0
-offset_bottom = -32.0
+offset_left = 80.0
+offset_top = -150.0
+offset_right = -80.0
+offset_bottom = -30.0
 grow_horizontal = 2
 grow_vertical = 0
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 8
-theme_override_font_sizes/font_size = 24
-text = "相手が乾杯するタイミングに合わせて入力"
-horizontal_alignment = 1
-vertical_alignment = 1
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBox_progress")
 
-[node name="ClearOverlay" type="ColorRect" parent="."]
+[node name="Margin" type="MarginContainer" parent="ProgressPanel" unique_id=749744998]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 12
+
+[node name="Content" type="VBoxContainer" parent="ProgressPanel/Margin" unique_id=1773793060]
+layout_mode = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="NoticeLabel" type="Label" parent="ProgressPanel/Margin/Content" unique_id=1058011870]
 unique_name_in_owner = true
 visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 1, 0.72, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 5
+theme_override_font_sizes/font_size = 24
+text = "もう一度練習しよう"
+horizontal_alignment = 1
+
+[node name="ProgressRow" type="HBoxContainer" parent="ProgressPanel/Margin/Content" unique_id=1864487968]
+layout_mode = 2
+theme_override_constants/separation = 36
+alignment = 1
+
+[node name="Caption" type="Label" parent="ProgressPanel/Margin/Content/ProgressRow" unique_id=807526433]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.91, 0.45, 1)
+theme_override_colors/font_outline_color = Color(0.3, 0.08, 0.02, 1)
+theme_override_constants/outline_size = 7
+theme_override_font_sizes/font_size = 34
+text = "乾杯"
+
+[node name="ProgressLabel" type="Label" parent="ProgressPanel/Margin/Content/ProgressRow" unique_id=1198211136]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 7
+theme_override_font_sizes/font_size = 40
+text = "0 / 3"
+
+[node name="ClearOverlay" type="ColorRect" parent="." unique_id=986890169]
+unique_name_in_owner = true
 z_index = 300
 layout_mode = 1
 anchors_preset = 15
@@ -97,7 +197,8 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0, 0, 0, 0.78)
 
-[node name="Message" type="Label" parent="ClearOverlay"]
+[node name="ClearMessage" type="Label" parent="ClearOverlay" unique_id=871779523]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -106,8 +207,9 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_colors/font_color = Color(1, 0.91, 0.45, 1)
 theme_override_colors/font_outline_color = Color(0.45, 0.08, 0.03, 1)
-theme_override_constants/outline_size = 12
-theme_override_font_sizes/font_size = 54
-text = "チュートリアル\nクリア！"
+theme_override_constants/outline_size = 40
+theme_override_font_sizes/font_size = 58
+text = "3回成功！
+本番へ"
 horizontal_alignment = 1
 vertical_alignment = 1
