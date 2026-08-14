@@ -14,6 +14,9 @@ enum Phase {
 @export var shutter_effect_enabled: bool = true
 
 @onready var preview: TextureRect = %Preview
+@onready var face_guide: TextureRect = %FaceGuide
+@onready var before_message: TextureRect = %BeforeMessage
+@onready var after_message: TextureRect = %AfterMessage
 @onready var shutter_player: VideoStreamPlayer = %ShutterPlayer
 @onready var status_label: Label = %StatusLabel
 @onready var action_button: Button = %ActionButton
@@ -35,6 +38,7 @@ func _ready() -> void:
 	if camera_source == null:
 		camera_source = _create_default_camera_source()
 
+	_show_capture_message(false)
 	_attach_camera_source()
 	_update_shutter_aspect()
 
@@ -123,6 +127,7 @@ func _start_retake() -> void:
 	review_input_enabled = false
 	shutter_player.stop()
 	shutter_player.visible = false
+	_show_capture_message(false)
 	status_label.text = "カメラを再起動しています。"
 
 	if run_context != null:
@@ -138,6 +143,7 @@ func _retry_camera() -> void:
 		return
 
 	preview.texture = null
+	_show_capture_message(false)
 	status_label.text = "カメラを再起動しています。"
 	camera_source.stop()
 	camera_source.start()
@@ -185,6 +191,7 @@ func _on_capture_succeeded(image: Image) -> void:
 
 	# 撮影画像を動画の背面へ固定し、シャッター越しにも写真を見せる。
 	preview.texture = ImageTexture.create_from_image(stored_image)
+	_show_capture_message(true)
 	camera_source.stop()
 	capture_in_progress = false
 	_play_shutter_effect()
@@ -284,6 +291,7 @@ func _on_capture_failed(message: String) -> void:
 	phase = Phase.LIVE
 	capture_in_progress = false
 	review_input_enabled = false
+	_show_capture_message(false)
 	status_label.text = message
 	_update_action_visibility()
 
@@ -319,6 +327,13 @@ func _update_action_visibility(
 
 func _on_action_button_pressed() -> void:
 	_handle_cheers_input()
+
+
+# 撮影前後の案内画像と、顔合わせガイドを同じ状態から切り替える。
+func _show_capture_message(captured: bool) -> void:
+	before_message.visible = not captured
+	after_message.visible = captured
+	face_guide.visible = not captured
 
 
 func _update_shutter_aspect() -> void:
