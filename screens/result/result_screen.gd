@@ -1,6 +1,7 @@
 class_name ResultScreen
 extends FlowScreen
 
+@onready var result_audio_player: AudioStreamPlayer = %ResultAudioPlayer
 @onready var action_button: Button = %ActionButton
 @onready var success_count_label: Label = %SuccessCountLabel
 @onready var success_amount_label: Label = %SuccessAmountLabel
@@ -14,6 +15,15 @@ extends FlowScreen
 func _ready() -> void:
 	action_button.pressed.connect(_on_action_button_pressed)
 	update_result_display()
+
+	# レシートが現れるタイミングに合わせ、会計の効果音を一度だけ鳴らす。
+	if result_audio_player.stream != null:
+		result_audio_player.play()
+
+
+func _exit_tree() -> void:
+	result_audio_player.stop()
+	result_audio_player.stream = null
 
 
 func setup(context: RunContext) -> void:

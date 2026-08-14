@@ -153,6 +153,10 @@ func test_app_flow() -> void:
 	)
 
 	var result_screen := app.current_screen as ResultScreen
+	expect_true(
+		result_screen.result_audio_player.playing,
+		"レシート表示時に会計の効果音を再生する"
+	)
 	expect_equal(
 		result_screen.success_count_label.text,
 		"3",
