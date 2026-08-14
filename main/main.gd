@@ -14,9 +14,6 @@ signal screen_completed(payload: Dictionary)
 )
 @export_range(0.0, 5.0, 0.1) var start_delay_seconds: float = 1.5
 
-# 正式なリザルト計算が決まるまで使用する暫定ポイント。
-const POINTS_PER_SUCCESS: int = 100
-
 var run_context: RunContext
 
 # 開始演出中の入力と譜面進行を止めるための状態。
@@ -118,10 +115,6 @@ func finish_game() -> void:
 		{
 			"cheers_success_count": rhythm_session.cheers_success_count,
 			"cheers_failure_count": rhythm_session.cheers_failure_count,
-			"result_value": (
-				rhythm_session.cheers_success_count
-				* POINTS_PER_SUCCESS
-			),
 		}
 	)
 

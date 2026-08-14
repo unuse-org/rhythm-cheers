@@ -1,8 +1,20 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://rx6tsrsnbx88"]
 
-[ext_resource type="Script" path="res://screens/result/result_screen.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://dqk6lwrhsr5h2" path="res://screens/result/result_screen.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://u4lnh70ds2a" path="res://assets/images/background.png" id="2_background"]
+[ext_resource type="Texture2D" uid="uid://b43ysp4ovklsr" path="res://assets/images/logo.png" id="3_logo"]
 
-[node name="ResultScreen" type="Control"]
+[sub_resource type="StyleBoxFlat" id="StyleBox_receipt"]
+bg_color = Color(0.8784314, 0.8666667, 0.8745098, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_face"]
+bg_color = Color(0.12, 0.12, 0.12, 1)
+
+[node name="ResultScreen" type="Control" unique_id=779471047]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,7 +23,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_script")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="TextureRect" parent="." unique_id=865249723]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -19,71 +31,209 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.12, 0.11, 0.075, 1)
+texture = ExtResource("2_background")
+expand_mode = 1
+stretch_mode = 6
 
-[node name="Center" type="CenterContainer" parent="."]
+[node name="ScreenLayout" type="VBoxContainer" parent="." unique_id=812061149]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = 80.0
+offset_top = 150.0
+offset_right = -80.0
+offset_bottom = -60.0
 grow_horizontal = 2
 grow_vertical = 2
-
-[node name="Content" type="VBoxContainer" parent="Center"]
-custom_minimum_size = Vector2(520, 0)
-layout_mode = 2
-theme_override_constants/separation = 32
+theme_override_constants/separation = 24
 alignment = 1
 
-[node name="Title" type="Label" parent="Center/Content"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 52
-text = "リザルト"
-horizontal_alignment = 1
-
-[node name="ScoreLabel" type="Label" parent="Center/Content"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_font_sizes/font_size = 30
-text = "成功: --\n失敗: --\n結果: --"
-horizontal_alignment = 1
-
-[node name="FaceFrame" type="ColorRect" parent="Center/Content"]
-custom_minimum_size = Vector2(400, 300)
+[node name="Receipt" type="PanelContainer" parent="ScreenLayout" unique_id=1741855754]
+custom_minimum_size = Vector2(486, 905)
 layout_mode = 2
 size_flags_horizontal = 4
-color = Color(0.24, 0.22, 0.16, 1)
+theme_override_styles/panel = SubResource("StyleBox_receipt")
 
-[node name="FacePreview" type="TextureRect" parent="Center/Content/FaceFrame"]
-unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+[node name="ReceiptMargin" type="MarginContainer" parent="ScreenLayout/Receipt" unique_id=1953461777]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 24
+
+[node name="ReceiptContent" type="VBoxContainer" parent="ScreenLayout/Receipt/ReceiptMargin" unique_id=2142220068]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Logo" type="TextureRect" parent="ScreenLayout/Receipt/ReceiptMargin/ReceiptContent" unique_id=1482144124]
+custom_minimum_size = Vector2(0, 134)
+layout_mode = 2
 mouse_filter = 2
-texture_filter = 1
+texture = ExtResource("3_logo")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="FaceStatusLabel" type="Label" parent="Center/Content/FaceFrame"]
+[node name="HeaderSeparator" type="HSeparator" parent="ScreenLayout/Receipt/ReceiptMargin/ReceiptContent" unique_id=23266135]
+layout_mode = 2
+
+[node name="SuccessTitle" type="Label" parent="ScreenLayout/Receipt/ReceiptMargin/ReceiptContent" unique_id=493034677]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 42
+text = "乾杯"
+
+[node name="SuccessRow" type="HBoxContainer" parent="ScreenLayout/Receipt/ReceiptMargin/ReceiptContent" unique_id=558484987]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Unit" type="Label" parent="ScreenLayout/Receipt/ReceiptMargin/ReceiptContent/SuccessRow" unique_id=1807756937]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 34
+text = "¥500 ×"
+
+[node name="SuccessCountLabel" type="Label" parent="ScreenLayout/Receipt/ReceiptMargin/ReceiptContent/SuccessRow" unique_id=864050400]
 unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+custom_minimum_size = Vector2(44, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 34
+text = "--"
+horizontal_alignment = 2
+
+[node name="CupEquals" type="Label" parent="ScreenLayout/Receipt/ReceiptMargin/ReceiptContent/SuccessRow" unique_id=1646603857]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 34
+text = "杯 ="
+
+[node name="SuccessAmountLabel" type="Label" parent="ScreenLayout/Receipt/ReceiptMargin/ReceiptContent/SuccessRow" unique_id=1662566726]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 34
+text = "¥--"
+horizontal_alignment = 2
+
+[node name="FailureTitle" type="Label" parent="ScreenLayout/Receipt/ReceiptMargin/ReceiptContent" unique_id=1398941947]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 42
+text = "失杯"
+
+[node name="FailureRow" type="HBoxContainer" parent="ScreenLayout/Receipt/ReceiptMargin/ReceiptContent" unique_id=1539987100]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Unit" type="Label" parent="ScreenLayout/Receipt/ReceiptMargin/ReceiptContent/FailureRow" unique_id=655925177]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 34
+text = "¥-50 ×"
+
+[node name="FailureCountLabel" type="Label" parent="ScreenLayout/Receipt/ReceiptMargin/ReceiptContent/FailureRow" unique_id=1601501895]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(44, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 34
+text = "--"
+horizontal_alignment = 2
+
+[node name="CupEquals" type="Label" parent="ScreenLayout/Receipt/ReceiptMargin/ReceiptContent/FailureRow" unique_id=859339711]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 34
+text = "杯 ="
+
+[node name="FailureAmountLabel" type="Label" parent="ScreenLayout/Receipt/ReceiptMargin/ReceiptContent/FailureRow" unique_id=1757878890]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 34
+text = "¥--"
+horizontal_alignment = 2
+
+[node name="ResultSpacer" type="Control" parent="ScreenLayout/Receipt/ReceiptMargin/ReceiptContent" unique_id=1565247963]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+size_flags_vertical = 3
 mouse_filter = 2
+
+[node name="TotalRow" type="HBoxContainer" parent="ScreenLayout/Receipt/ReceiptMargin/ReceiptContent" unique_id=1656292030]
+custom_minimum_size = Vector2(0, 68)
+layout_mode = 2
+alignment = 1
+
+[node name="Title" type="Label" parent="ScreenLayout/Receipt/ReceiptMargin/ReceiptContent/TotalRow" unique_id=1179876968]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 46
+text = "合計"
+vertical_alignment = 1
+
+[node name="TotalAmountLabel" type="Label" parent="ScreenLayout/Receipt/ReceiptMargin/ReceiptContent/TotalRow" unique_id=380416523]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 46
+text = "¥--"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="TotalSeparator" type="HSeparator" parent="ScreenLayout/Receipt/ReceiptMargin/ReceiptContent" unique_id=713474897]
+layout_mode = 2
+
+[node name="PaymentRow" type="HBoxContainer" parent="ScreenLayout/Receipt/ReceiptMargin/ReceiptContent" unique_id=902079207]
+custom_minimum_size = Vector2(0, 196)
+layout_mode = 2
+theme_override_constants/separation = 18
+alignment = 1
+
+[node name="PaymentGuideLabel" type="Label" parent="ScreenLayout/Receipt/ReceiptMargin/ReceiptContent/PaymentRow" unique_id=496815494]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 34
+text = "お支払いは
+この方に→"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="FaceFrame" type="PanelContainer" parent="ScreenLayout/Receipt/ReceiptMargin/ReceiptContent/PaymentRow" unique_id=206225475]
+clip_contents = true
+custom_minimum_size = Vector2(160, 196)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBox_face")
+
+[node name="FacePreview" type="TextureRect" parent="ScreenLayout/Receipt/ReceiptMargin/ReceiptContent/PaymentRow/FaceFrame" unique_id=1474883476]
+unique_name_in_owner = true
+texture_filter = 1
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 6
+
+[node name="FaceStatusLabel" type="Label" parent="ScreenLayout/Receipt/ReceiptMargin/ReceiptContent/PaymentRow/FaceFrame" unique_id=1254704607]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 22
 text = "顔写真なし"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="ActionButton" type="Button" parent="Center/Content"]
+[node name="ActionButton" type="Button" parent="ScreenLayout" unique_id=588025415]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 72)
+custom_minimum_size = Vector2(520, 72)
 layout_mode = 2
+size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 24
-text = "タイトルへ戻る"
+text = "乾杯してタイトルへ戻る"

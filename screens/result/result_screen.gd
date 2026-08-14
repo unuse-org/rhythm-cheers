@@ -2,7 +2,11 @@ class_name ResultScreen
 extends FlowScreen
 
 @onready var action_button: Button = %ActionButton
-@onready var score_label: Label = %ScoreLabel
+@onready var success_count_label: Label = %SuccessCountLabel
+@onready var success_amount_label: Label = %SuccessAmountLabel
+@onready var failure_count_label: Label = %FailureCountLabel
+@onready var failure_amount_label: Label = %FailureAmountLabel
+@onready var total_amount_label: Label = %TotalAmountLabel
 @onready var face_preview: TextureRect = %FacePreview
 @onready var face_status_label: Label = %FaceStatusLabel
 
@@ -26,18 +30,25 @@ func receive_sensor_input(
 		complete_screen()
 
 
-func update_result_text() -> void:
+func update_result_amounts() -> void:
 	if run_context == null:
-		score_label.text = "成功: --\n失敗: --\n結果: --"
+		success_count_label.text = "--"
+		success_amount_label.text = "¥--"
+		failure_count_label.text = "--"
+		failure_amount_label.text = "¥--"
+		total_amount_label.text = "¥--"
 		return
 
-	score_label.text = (
-		"成功: %d\n失敗: %d\n結果: %d"
-		% [
-			run_context.cheers_success_count,
-			run_context.cheers_failure_count,
-			run_context.result_value,
-		]
+	success_count_label.text = str(run_context.cheers_success_count)
+	success_amount_label.text = _format_amount(
+		run_context.calculate_success_amount()
+	)
+	failure_count_label.text = str(run_context.cheers_failure_count)
+	failure_amount_label.text = _format_amount(
+		run_context.calculate_failure_amount()
+	)
+	total_amount_label.text = _format_amount(
+		run_context.calculate_total_amount()
 	)
 
 
@@ -59,8 +70,12 @@ func update_result_face() -> void:
 
 
 func update_result_display() -> void:
-	update_result_text()
+	update_result_amounts()
 	update_result_face()
+
+
+func _format_amount(amount: int) -> String:
+	return "¥%d" % amount
 
 
 func _on_action_button_pressed() -> void:

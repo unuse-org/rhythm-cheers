@@ -144,20 +144,39 @@ func test_app_flow() -> void:
 	)
 	expect_equal(app.run_context.cheers_success_count, 3, "成功数を引き継ぐ")
 	expect_equal(app.run_context.cheers_failure_count, 1, "失敗数を引き継ぐ")
-	expect_equal(app.run_context.result_value, 300, "暫定結果値を計算する")
+	expect_equal(app.run_context.calculate_success_amount(), 1500, "成功金額")
+	expect_equal(app.run_context.calculate_failure_amount(), -50, "失敗金額")
+	expect_equal(app.run_context.calculate_total_amount(), 1450, "合計金額")
 	expect_true(
 		not is_instance_valid(main_screen),
 		"メイン画面を遷移後に破棄する"
 	)
 
 	var result_screen := app.current_screen as ResultScreen
-	expect_true(
-		"成功: 3" in result_screen.score_label.text,
-		"リザルト画面に成功数を表示する"
+	expect_equal(
+		result_screen.success_count_label.text,
+		"3",
+		"リザルト画面に乾杯数を表示する"
 	)
-	expect_true(
-		"失敗: 1" in result_screen.score_label.text,
-		"リザルト画面に失敗数を表示する"
+	expect_equal(
+		result_screen.success_amount_label.text,
+		"¥1500",
+		"リザルト画面に乾杯金額を表示する"
+	)
+	expect_equal(
+		result_screen.failure_count_label.text,
+		"1",
+		"リザルト画面に失杯数を表示する"
+	)
+	expect_equal(
+		result_screen.failure_amount_label.text,
+		"¥-50",
+		"リザルト画面に失杯金額を表示する"
+	)
+	expect_equal(
+		result_screen.total_amount_label.text,
+		"¥1450",
+		"リザルト画面に合計金額を表示する"
 	)
 	expect_true(
 		result_screen.face_preview.texture != null,

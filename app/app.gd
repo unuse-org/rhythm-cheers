@@ -136,9 +136,6 @@ func apply_screen_payload(payload: Dictionary) -> void:
 	if payload.has("cheers_failure_count"):
 		run_context.cheers_failure_count = payload["cheers_failure_count"]
 
-	if payload.has("result_value"):
-		run_context.result_value = payload["result_value"]
-
 
 func _unlock_transition() -> void:
 	transition_locked = false
