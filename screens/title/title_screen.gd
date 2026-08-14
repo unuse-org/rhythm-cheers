@@ -5,7 +5,9 @@ extends FlowScreen
 @export var door_open_distance_ratio: float = 0.5
 
 @onready var door: TextureRect = %Door
+@onready var logo: TextureRect = %Logo
 @onready var action_button: TextureButton = %ActionButton
+@onready var door_audio_player: AudioStreamPlayer = %DoorAudioPlayer
 
 var is_opening: bool = false
 var door_tween: Tween
@@ -18,6 +20,8 @@ func _ready() -> void:
 func _exit_tree() -> void:
 	if door_tween != null and door_tween.is_valid():
 		door_tween.kill()
+
+	door_audio_player.stop()
 
 
 func receive_sensor_input(
@@ -35,6 +39,10 @@ func start_door_opening() -> void:
 	is_opening = true
 	action_button.disabled = true
 	action_button.visible = false
+	logo.visible = false
+
+	if door_audio_player.stream != null:
+		door_audio_player.play()
 
 	# 自動テストでは0秒に設定し、待機せず遷移だけを検証できる。
 	if door_open_duration <= 0.0:

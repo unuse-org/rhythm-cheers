@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ce21xhqn3rjwf"
-path="res://.godot/imported/door.png-5e6c8c1f485ac865ec3f4b714d68e3fe.ctex"
+uid="uid://d3cwlxc28tqln"
+path="res://.godot/imported/goodwil.png-17355f78985ab90703c35789eaa36b2d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/images/door.png"
-dest_files=["res://.godot/imported/door.png-5e6c8c1f485ac865ec3f4b714d68e3fe.ctex"]
+source_file="res://assets/images/goodwil.png"
+dest_files=["res://.godot/imported/goodwil.png-17355f78985ab90703c35789eaa36b2d.ctex"]
 
 [params]
 

@@ -29,10 +29,16 @@ func test_door_opens_before_completion() -> void:
 		screen.action_button.texture_normal != null,
 		"Start画像をTextureButtonへ表示する"
 	)
+	expect_true(
+		screen.door_audio_player.stream != null,
+		"扉を開く効果音を読み込む"
+	)
 
 	screen.receive_sensor_input(RhythmTypes.InputType.CHEERS)
 	expect_true(screen.is_opening, "乾杯入力で扉を開き始める")
 	expect_true(not screen.action_button.visible, "開始後はStart画像を隠す")
+	expect_true(not screen.logo.visible, "開始後はLogo画像を隠す")
+	expect_true(screen.door_audio_player.playing, "扉を開く時に効果音を再生する")
 	expect_equal(completion_count, 0, "扉の移動中は画面遷移しない")
 
 	# 演出中の連続入力ではTweenや完了通知を増やさない。
