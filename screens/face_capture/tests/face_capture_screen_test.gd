@@ -55,6 +55,10 @@ func test_layout_and_capture_flow() -> void:
 		"シャッター演出は画面全体へ重ねる"
 	)
 	expect_true(screen.preview.texture != null, "カメラ映像を表示する")
+	expect_true(
+		screen.shutter_audio_player.stream != null,
+		"撮影時のシャッター音を読み込む"
+	)
 	expect_true(screen.before_message.visible, "撮影前の案内を表示する")
 	expect_true(not screen.after_message.visible, "撮影後の案内を隠しておく")
 	expect_true(screen.face_guide.visible, "撮影前は顔ガイドを表示する")
@@ -67,6 +71,7 @@ func test_layout_and_capture_flow() -> void:
 		"撮影後に確認状態へ進む"
 	)
 	expect_true(context.captured_face_image != null, "撮影画像を保持する")
+	expect_true(screen.shutter_audio_player.playing, "撮影開始時にシャッター音を鳴らす")
 	expect_true(not screen.before_message.visible, "撮影後は撮影前案内を隠す")
 	expect_true(screen.after_message.visible, "撮影後は入店許可を表示する")
 	expect_true(not screen.face_guide.visible, "撮影後は顔ガイドを隠す")
@@ -91,6 +96,7 @@ func test_layout_and_capture_flow() -> void:
 	await create_timer(0.12).timeout
 	screen.free()
 	await process_frame
+	await create_timer(0.1).timeout
 
 
 func _on_screen_completed(_payload: Dictionary) -> void:

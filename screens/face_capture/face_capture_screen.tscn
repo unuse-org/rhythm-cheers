@@ -9,6 +9,7 @@
 [ext_resource type="Texture2D" uid="uid://dus76qrx7qhy6" path="res://assets/images/camera_message_1.png" id="6_jci17"]
 [ext_resource type="Texture2D" uid="uid://krbua1hub65t" path="res://assets/images/camera_message_2.png" id="6_wwosl"]
 [ext_resource type="Texture2D" uid="uid://bi1voku46xuv1" path="res://assets/images/camera_face.png" id="7_face_guide"]
+[ext_resource type="AudioStream" uid="uid://bwo3pv0fj4hf3" path="res://assets/audio/shutter.mp3" id="8_shutter_audio"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_chroma"]
 shader = ExtResource("6_chroma")
@@ -177,6 +178,10 @@ text = "Webカメラを起動しています"
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2
+
+[node name="ShutterAudioPlayer" type="AudioStreamPlayer" parent="."]
+unique_name_in_owner = true
+stream = ExtResource("8_shutter_audio")
 
 [node name="ShutterPlayer" type="VideoStreamPlayer" parent="." unique_id=458426020]
 unique_name_in_owner = true

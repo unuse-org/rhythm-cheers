@@ -17,6 +17,7 @@ enum Phase {
 @onready var face_guide: TextureRect = %FaceGuide
 @onready var before_message: TextureRect = %BeforeMessage
 @onready var after_message: TextureRect = %AfterMessage
+@onready var shutter_audio_player: AudioStreamPlayer = %ShutterAudioPlayer
 @onready var shutter_player: VideoStreamPlayer = %ShutterPlayer
 @onready var status_label: Label = %StatusLabel
 @onready var action_button: Button = %ActionButton
@@ -46,6 +47,8 @@ func _ready() -> void:
 func _exit_tree() -> void:
 	# 待機中の確認タイマーと動画を無効化し、カメラも確実に解放する。
 	review_generation += 1
+	shutter_audio_player.stop()
+	shutter_audio_player.stream = null
 	shutter_player.stop()
 
 	if camera_source != null:
@@ -113,6 +116,10 @@ func _request_capture() -> void:
 	capture_in_progress = true
 	status_label.text = "撮影しています。"
 	_update_action_visibility()
+
+	if shutter_audio_player.stream != null:
+		shutter_audio_player.play()
+
 	camera_source.capture_frame()
 
 
