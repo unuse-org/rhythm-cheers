@@ -24,6 +24,7 @@ var character: TextureRect
 @export var character_normal_texture: Texture2D
 @export var character_prepare_texture: Texture2D
 @export var character_cheers_texture: Texture2D
+@export var character_success_texture: Texture2D
 @export var character_failure_texture: Texture2D
 # NORMAL中に拍に合わせて動かす上下幅
 @export_range(0.0, 48.0, 0.5) var character_bob_amplitude: float = 12.0
@@ -74,6 +75,46 @@ func configure(new_rhythm_session: RhythmSession) -> void:
 
 	current_character_state = rhythm_session.character_state
 	set_character_state(current_character_state)
+
+
+# 撮影画像から生成した5状態をTexture2Dへ変換し、全ての相手へ共有する。
+# 1枚でも不足している場合は変更せず、シーンに設定された既存素材を使う。
+func apply_character_images(images: Resource) -> bool:
+	if images == null:
+		return false
+
+	var image_names: Array[String] = [
+		"normal",
+		"prepare",
+		"judging",
+		"success",
+		"failure",
+	]
+	var textures: Array[Texture2D] = []
+
+	for image_name: String in image_names:
+		var image := images.get(image_name) as Image
+		if image == null or image.is_empty():
+			return false
+
+		textures.append(ImageTexture.create_from_image(image))
+
+	character_normal_texture = textures[0]
+	character_prepare_texture = textures[1]
+	character_cheers_texture = textures[2]
+	character_success_texture = textures[3]
+	character_failure_texture = textures[4]
+
+	# 横スクロール用に複製済みの席にも、新しい通常画像を反映する。
+	for station: Control in opponent_stations:
+		var station_character := station.get_node("Character") as TextureRect
+		station_character.texture = character_normal_texture
+		station_character.modulate = Color.WHITE
+
+	if character != null:
+		set_character_state(current_character_state)
+
+	return true
 
 
 # 曲時刻から、対象人物・横位置・人物の上下位置を更新する
@@ -247,9 +288,14 @@ func set_character_state(state: RhythmTypes.CharacterState) -> void:
 		RhythmTypes.CharacterState.PREPARE:
 			character.texture = character_prepare_texture
 
-		RhythmTypes.CharacterState.JUDGING, \
-		RhythmTypes.CharacterState.SUCCESS:
+		RhythmTypes.CharacterState.JUDGING:
 			character.texture = character_cheers_texture
+
+		RhythmTypes.CharacterState.SUCCESS:
+			if character_success_texture != null:
+				character.texture = character_success_texture
+			else:
+				character.texture = character_cheers_texture
 
 		RhythmTypes.CharacterState.FAILURE:
 			# 失敗素材が届くまでは通常画像の色を変えて代用する

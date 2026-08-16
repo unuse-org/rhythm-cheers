@@ -1,5 +1,14 @@
 extends SceneTree
 
+class FakeCharacterImageSet:
+	extends Resource
+
+	var normal: Image
+	var prepare: Image
+	var judging: Image
+	var success: Image
+	var failure: Image
+
 const CHART_PATH: String = "res://rhythm/charts/test_chart.json"
 const VISUAL_SCENE_PATH: String = "res://visual/gameplay_visual.tscn"
 
@@ -22,6 +31,7 @@ func run_tests() -> void:
 	test_missed_cheers(chart)
 	test_cheers_text_transitions(chart)
 	test_result_visual_transitions(chart)
+	test_generated_character_images(chart)
 	test_character_bobs_on_beat(chart)
 	test_opponent_scroll_transitions(chart)
 	finish_tests()
@@ -238,8 +248,8 @@ func test_result_visual_transitions(chart: RhythmChart) -> void:
 	)
 	expect_control_rect(
 		visual.character,
-		Vector2(150.5, 96.0),
-		Vector2(419.0, 744.0),
+		Vector2(46.0, 0.0),
+		Vector2(628.0, 1116.0),
 		"Character"
 	)
 	expect_control_rect(
@@ -341,6 +351,92 @@ func test_result_visual_transitions(chart: RhythmChart) -> void:
 
 	visual.free()
 	session.free()
+
+
+func test_generated_character_images(chart: RhythmChart) -> void:
+	var session := RhythmSession.new()
+	root.add_child(session)
+	session.configure(chart)
+
+	var visual_scene := load(VISUAL_SCENE_PATH) as PackedScene
+	var visual := visual_scene.instantiate() as GameplayVisual
+	root.add_child(visual)
+	visual.configure(session)
+
+	var images := FakeCharacterImageSet.new()
+	images.normal = create_color_image(Color.RED)
+	images.prepare = create_color_image(Color.GREEN)
+	images.judging = create_color_image(Color.BLUE)
+	images.success = create_color_image(Color.YELLOW)
+	images.failure = create_color_image(Color.MAGENTA)
+	expect_true(
+		visual.apply_character_images(images),
+		"完全な生成画像セットを適用する"
+	)
+	expect_texture_color(visual.character.texture, Color.RED, "NORMAL生成画像")
+
+	for station: Control in visual.opponent_stations:
+		expect_texture_color(
+			(station.get_node("Character") as TextureRect).texture,
+			Color.RED,
+			"複製した相手にもNORMAL生成画像を適用する"
+		)
+
+	session.change_character_state(RhythmTypes.CharacterState.PREPARE)
+	expect_texture_color(visual.character.texture, Color.GREEN, "PREPARE生成画像")
+	session.change_character_state(RhythmTypes.CharacterState.JUDGING)
+	expect_texture_color(visual.character.texture, Color.BLUE, "JUDGING生成画像")
+	session.change_character_state(RhythmTypes.CharacterState.SUCCESS)
+	expect_texture_color(visual.character.texture, Color.YELLOW, "SUCCESS生成画像")
+	session.change_character_state(RhythmTypes.CharacterState.FAILURE)
+	expect_texture_color(visual.character.texture, Color.MAGENTA, "FAILURE生成画像")
+	expect_equal(
+		visual.character.modulate,
+		Color.WHITE,
+		"生成したFAILURE画像には仮の色変更を加えない"
+	)
+
+	var incomplete_images := FakeCharacterImageSet.new()
+	incomplete_images.normal = create_color_image(Color.BLACK)
+	expect_true(
+		not visual.apply_character_images(incomplete_images),
+		"不完全な生成画像セットを拒否する"
+	)
+	expect_texture_color(
+		visual.character.texture,
+		Color.MAGENTA,
+		"不完全な画像セットでは現在の素材を維持する"
+	)
+
+	visual.free()
+	session.free()
+
+
+func create_color_image(color: Color) -> Image:
+	var image := Image.create(4, 4, false, Image.FORMAT_RGBA8)
+	image.fill(color)
+	return image
+
+
+func expect_texture_color(
+	texture: Texture2D,
+	expected_color: Color,
+	message: String
+) -> void:
+	if texture == null:
+		failures.append("%s: texture is null" % message)
+		return
+
+	var image := texture.get_image()
+	if image == null or image.is_empty():
+		failures.append("%s: image is empty" % message)
+		return
+
+	if not image.get_pixel(0, 0).is_equal_approx(expected_color):
+		failures.append(
+			"%s: expected=%s actual=%s"
+			% [message, expected_color, image.get_pixel(0, 0)]
+		)
 
 
 func test_character_bobs_on_beat(chart: RhythmChart) -> void:

@@ -64,6 +64,14 @@ func test_run_context() -> void:
 
 	expect_true(context.captured_face_image == null, "撮影画像の初期値")
 	expect_true(context.processed_face_image == null, "加工画像の初期値")
+	expect_true(
+		context.generated_character_images == null,
+		"生成キャラクター画像の初期値"
+	)
+	expect_true(
+		not context.character_generation_succeeded,
+		"画像生成成功状態の初期値"
+	)
 	expect_true(not context.tutorial_completed, "チュートリアル状態の初期値")
 	expect_equal(context.cheers_success_count, 0, "成功数の初期値")
 	expect_equal(context.cheers_failure_count, 0, "失敗数の初期値")
@@ -71,6 +79,8 @@ func test_run_context() -> void:
 
 	context.captured_face_image = Image.create(1, 1, false, Image.FORMAT_RGBA8)
 	context.processed_face_image = Image.create(1, 1, false, Image.FORMAT_RGBA8)
+	context.generated_character_images = Resource.new()
+	context.character_generation_succeeded = true
 	context.tutorial_completed = true
 	context.cheers_success_count = 3
 	context.cheers_failure_count = 1
@@ -78,6 +88,14 @@ func test_run_context() -> void:
 	expect_equal(context.calculate_failure_amount(), -50, "失敗金額を計算する")
 	expect_equal(context.calculate_total_amount(), 1450, "合計金額を計算する")
 	context.clear()
+	expect_true(
+		context.generated_character_images == null,
+		"生成キャラクター画像を解放する"
+	)
+	expect_true(
+		not context.character_generation_succeeded,
+		"画像生成成功状態を初期化する"
+	)
 
 	expect_true(context.captured_face_image == null, "撮影画像を破棄する")
 	expect_true(context.processed_face_image == null, "加工画像を破棄する")

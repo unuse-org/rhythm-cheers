@@ -7,6 +7,7 @@ enum Phase {
 	CAPTURING,
 	SHUTTER,
 	REVIEW,
+	PREPARING,
 	COMPLETED,
 }
 
@@ -24,10 +25,14 @@ enum Phase {
 @onready var retry_button: Button = %RetryButton
 
 var camera_source: CameraCaptureSource
+var generation_service: CharacterGenerationService
 var phase: Phase = Phase.LIVE
 var capture_in_progress: bool = false
 var review_generation: int = 0
 var review_input_enabled: bool = false
+var active_generation_request_id: int = 0
+var review_countdown_finished: bool = false
+var live_capture_message: String = "乾杯して撮影"
 
 
 func _ready() -> void:
@@ -38,6 +43,16 @@ func _ready() -> void:
 
 	if camera_source == null:
 		camera_source = _create_default_camera_source()
+	if generation_service == null:
+		generation_service = CharacterGenerationService.new()
+	if generation_service.get_parent() == null:
+		add_child(generation_service)
+	generation_service.generation_succeeded.connect(
+		_on_character_generation_succeeded
+	)
+	generation_service.generation_failed.connect(
+		_on_character_generation_failed
+	)
 
 	_show_capture_message(false)
 	_attach_camera_source()
@@ -47,6 +62,8 @@ func _ready() -> void:
 func _exit_tree() -> void:
 	# 待機中の確認タイマーと動画を無効化し、カメラも確実に解放する。
 	review_generation += 1
+	if generation_service != null:
+		generation_service.cancel_active_request()
 	shutter_audio_player.stop()
 	shutter_audio_player.stream = null
 	shutter_player.stop()
@@ -62,6 +79,15 @@ func set_camera_source(source: CameraCaptureSource) -> void:
 		return
 
 	camera_source = source
+
+
+# 画像生成の成功・失敗・競合を、実カメラなしで統合テストできるようにする。
+func set_generation_service(service: CharacterGenerationService) -> void:
+	if is_node_ready():
+		push_error("画像生成Serviceは_ready()より前に設定してください。")
+		return
+
+	generation_service = service
 
 
 func receive_sensor_input(
@@ -128,10 +154,15 @@ func _start_retake() -> void:
 		return
 
 	# 進行待ちタイマーを無効化してからライブ映像へ戻す。
+	live_capture_message = "乾杯して撮影"
 	review_generation += 1
 	phase = Phase.LIVE
 	capture_in_progress = false
 	review_input_enabled = false
+	review_countdown_finished = false
+	active_generation_request_id = 0
+	if generation_service != null:
+		generation_service.cancel_active_request()
 	shutter_player.stop()
 	shutter_player.visible = false
 	_show_capture_message(false)
@@ -139,6 +170,8 @@ func _start_retake() -> void:
 
 	if run_context != null:
 		run_context.captured_face_image = null
+		run_context.generated_character_images = null
+		run_context.character_generation_succeeded = false
 
 	camera_source.stop()
 	camera_source.start()
@@ -168,7 +201,7 @@ func _on_camera_state_changed(
 	if phase in [Phase.LIVE, Phase.CAPTURING]:
 		match next_state:
 			CameraCaptureSource.State.READY:
-				status_label.text = "乾杯して撮影"
+				status_label.text = live_capture_message
 
 			CameraCaptureSource.State.UNAVAILABLE, CameraCaptureSource.State.ERROR:
 				status_label.text = "%s\n画面をタップして再試行" % message
@@ -195,6 +228,10 @@ func _on_capture_succeeded(image: Image) -> void:
 	# CameraTexture由来の画像参照を画面終了後も安全に保持できるよう複製する。
 	var stored_image := image.duplicate() as Image
 	run_context.captured_face_image = stored_image
+	run_context.generated_character_images = null
+	run_context.character_generation_succeeded = false
+	review_countdown_finished = false
+	active_generation_request_id = generation_service.generate(stored_image)
 
 	# 撮影画像を動画の背面へ固定し、シャッター越しにも写真を見せる。
 	preview.texture = ImageTexture.create_from_image(stored_image)
@@ -283,12 +320,94 @@ func complete_review() -> void:
 	if phase != Phase.REVIEW or is_completed:
 		return
 
+	review_countdown_finished = true
+	if (
+		generation_service != null
+		and generation_service.has_active_generation()
+	):
+		phase = Phase.PREPARING
+		review_input_enabled = false
+		status_label.text = "キャラクターを準備しています。"
+		_update_action_visibility()
+		return
+
+	_finish_review()
+
+
+func _finish_review() -> void:
+	if phase not in [Phase.REVIEW, Phase.PREPARING] or is_completed:
+		return
+
 	review_generation += 1
 	phase = Phase.COMPLETED
 	review_input_enabled = false
 	status_label.text = "チュートリアルへ進みます。"
 	_update_action_visibility()
 	complete_screen({"capture_completed": true})
+
+
+func _on_character_generation_succeeded(
+	request_id: int,
+	images: Resource
+) -> void:
+	if request_id != active_generation_request_id or run_context == null:
+		return
+
+	active_generation_request_id = 0
+	run_context.generated_character_images = images
+	run_context.character_generation_succeeded = images != null
+
+	if review_countdown_finished or phase == Phase.PREPARING:
+		_finish_review()
+
+
+func _on_character_generation_failed(
+	request_id: int,
+	error_code: int,
+	message: String
+) -> void:
+	if request_id != active_generation_request_id:
+		return
+
+	active_generation_request_id = 0
+	if run_context != null:
+		run_context.generated_character_images = null
+		run_context.character_generation_succeeded = false
+
+	# 顔未検出は撮り方を変えれば解消できるため、ゲームへ進まず再撮影する。
+	if error_code == CharacterGenerationService.GenerationError.FACE_NOT_FOUND:
+		_return_to_live_after_face_detection_failure()
+		return
+
+	# 拡張未ロードなど再撮影で解決しない問題では、固定素材で続行する。
+	print("Character generation fallback: ", message)
+	if review_countdown_finished or phase == Phase.PREPARING:
+		_finish_review()
+
+
+func _return_to_live_after_face_detection_failure() -> void:
+	review_generation += 1
+	phase = Phase.LIVE
+	capture_in_progress = false
+	review_input_enabled = false
+	review_countdown_finished = false
+	live_capture_message = (
+		"顔を認識できませんでした\n"
+		+ "もう一度乾杯してください"
+	)
+	shutter_player.stop()
+	shutter_player.visible = false
+	preview.texture = null
+	_show_capture_message(false)
+
+	if run_context != null:
+		run_context.captured_face_image = null
+
+	# 撮影時に停止したカメラを再開し、次の乾杯入力を待つ。
+	if camera_source != null:
+		camera_source.stop()
+		camera_source.start()
+	_update_action_visibility()
 
 
 func _on_capture_failed(message: String) -> void:

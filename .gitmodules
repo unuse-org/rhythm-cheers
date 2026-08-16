@@ -1,0 +1,4 @@
+[submodule "native/kanpai_image/third_party/godot-cpp"]
+	path = native/kanpai_image/third_party/godot-cpp
+	url = https://github.com/godotengine/godot-cpp.git
+	branch = 4.5

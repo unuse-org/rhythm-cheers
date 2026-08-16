@@ -43,6 +43,13 @@ func _ready() -> void:
 	rhythm_session.configure(chart)
 	# ゲーム画面の初期化
 	gameplay_visual.configure(rhythm_session)
+	if (
+		run_context != null
+		and run_context.character_generation_succeeded
+	):
+		gameplay_visual.apply_character_images(
+			run_context.generated_character_images
+		)
 	# デバッグ表示の初期化
 	rhythm_debug_display.configure(
 		rhythm_session,

@@ -59,6 +59,7 @@ func _ready() -> void:
 		# 案内表示中も編集時の表示状態を残さず、人物を通常状態に整える。
 		rhythm_session.configure(chart)
 		gameplay_visual.configure(rhythm_session)
+		_apply_generated_character_images()
 		show_tutorial_intro()
 	else:
 		start_tutorial_track()
@@ -111,6 +112,7 @@ func start_tutorial_track() -> void:
 	tutorial_success_count = 0
 	rhythm_session.configure(chart)
 	gameplay_visual.configure(rhythm_session)
+	_apply_generated_character_images()
 	intro_overlay.visible = false
 	progress_panel.visible = true
 	clear_overlay.visible = false
@@ -124,6 +126,19 @@ func start_tutorial_track() -> void:
 
 	if music_enabled:
 		music_player.play(0.0)
+
+
+# 生成に失敗したプレイでは、GameplayVisualに設定済みの固定素材を維持する。
+func _apply_generated_character_images() -> void:
+	if (
+		run_context == null
+		or not run_context.character_generation_succeeded
+	):
+		return
+
+	gameplay_visual.apply_character_images(
+		run_context.generated_character_images
+	)
 
 
 # 曲時刻を明示的に受け取れる形にし、自動テストでも同じ進行を使う。

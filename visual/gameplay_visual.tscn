@@ -51,10 +51,9 @@ stretch_mode = 6
 [node name="Character" type="TextureRect" parent="World/Opponent0" unique_id=99854191]
 z_index = 1
 layout_mode = 0
-offset_left = 150.5
-offset_top = 96.0
-offset_right = 569.5
-offset_bottom = 840.0
+offset_left = 46.0
+offset_right = 674.0
+offset_bottom = 1116.0
 mouse_filter = 2
 texture = ExtResource("3_character_normal")
 expand_mode = 1
