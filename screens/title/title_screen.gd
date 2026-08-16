@@ -41,6 +41,7 @@ func start_door_opening() -> void:
 	action_button.visible = false
 	logo.visible = false
 
+	# ガラガラ音を鳴らす
 	if door_audio_player.stream != null:
 		door_audio_player.play()
 
@@ -49,6 +50,8 @@ func start_door_opening() -> void:
 		_finish_door_opening()
 		return
 
+	# Tweenでドアを左へ開く
+	# Tweenの終了をawaitして、ドア開き演出が終わるまで待機する。
 	var open_distance := size.x * door_open_distance_ratio
 	door_tween = create_tween()
 	door_tween.set_trans(Tween.TRANS_QUAD)

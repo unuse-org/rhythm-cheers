@@ -3,10 +3,8 @@ extends CameraCaptureSource
 
 const SUPPORTED_PLATFORMS: Array[String] = [
 	"macOS",
-	"Linux",
-	"Android",
-	"iOS",
 ]
+# YCbCrからRGBへの変換は、Godot標準のCameraTextureでは行えないため、Shaderで変換する。
 const YCBCR_TO_RGB_SHADER: Shader = preload(
 	"res://camera/ycbcr_to_rgb.gdshader"
 )

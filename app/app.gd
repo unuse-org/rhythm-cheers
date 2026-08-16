@@ -48,6 +48,7 @@ func show_screen(screen_id: SceneFlow.ScreenId) -> void:
 		current_screen.queue_free()
 		current_screen = null
 
+	# 画面IDからシーンパスを取得し、PackedSceneとして読み込む。
 	var scene_path := SceneFlow.get_scene_path(screen_id)
 	var packed_scene := load(scene_path) as PackedScene
 
@@ -61,12 +62,15 @@ func show_screen(screen_id: SceneFlow.ScreenId) -> void:
 
 	# 各画面は必要なメソッドとシグナルだけを共通契約として実装する。
 	# MainはFlowScreenを継承しないため、継承型ではなく存在確認で扱う。
+	# 画面の初期化は、RunContextを引数にsetup()で行う。
 	if current_screen.has_method("setup"):
 		current_screen.call("setup", run_context)
 
+	# 画面が完了したらAppへ通知するため、シグナルを接続する。
 	if current_screen.has_signal("screen_completed"):
 		current_screen.connect("screen_completed", _on_screen_completed)
 
+	# 画面を表示するため、画面コンテナへ追加する。
 	screen_container.add_child(current_screen)
 	# 新しい画面へ遷移元の入力が届かないよう、次の処理単位で解除する。
 	call_deferred("_unlock_transition")
@@ -97,6 +101,7 @@ func initialize_sensor_provider() -> void:
 	active_sensor_provider.start()
 
 
+# Appが受け取ったセンサー入力を、現在表示中の画面へ転送する。
 func receive_sensor_input(
 	sensor_input_type: RhythmTypes.InputType
 ) -> void:
@@ -104,10 +109,12 @@ func receive_sensor_input(
 	if transition_locked or current_screen == null:
 		return
 
+	# 画面が入力を受け付けるメソッドを持っていれば、入力を転送する。
 	if current_screen.has_method("receive_sensor_input"):
 		current_screen.call("receive_sensor_input", sensor_input_type)
 
 
+# 画面が完了したら、Appが次の画面へ遷移する。
 func _on_screen_completed(payload: Dictionary) -> void:
 	# 完了通知が重複しても、遷移開始後の通知は無視する。
 	if transition_locked:

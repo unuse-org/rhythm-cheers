@@ -32,6 +32,9 @@ const PANEL_TEXTURE_PATHS: Array[String] = [
 	"res://assets/character_templates/success_overlay.png",
 	"res://assets/character_templates/failure_overlay.png",
 ]
+# 正面顔検出用のカスケード分類器。
+# OpenCVの公式リポジトリから取得。
+# https://github.com/opencv/opencv/blob/master/data/haarcascades/haarcascade_frontalface_alt.xml
 const CASCADE_PATH: String = (
 	"res://assets/character_templates/haarcascade_frontalface_alt.xml"
 )

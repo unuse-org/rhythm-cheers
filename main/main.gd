@@ -93,6 +93,8 @@ func begin_start_sequence() -> void:
 		start_game()
 		return
 
+	# 一定時間後にstart_game()を呼び出す。
+	# 1.5秒後にゲームを開始する。
 	get_tree().create_timer(start_delay_seconds).timeout.connect(
 		start_game,
 		CONNECT_ONE_SHOT
@@ -118,6 +120,7 @@ func finish_game() -> void:
 	is_game_completed = true
 	set_process(false)
 	music_player.stop()
+	# RhythmSessionの集計値をAppへ返す。
 	screen_completed.emit(
 		{
 			"cheers_success_count": rhythm_session.cheers_success_count,
