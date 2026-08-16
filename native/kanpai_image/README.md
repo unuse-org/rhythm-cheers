@@ -34,4 +34,4 @@ cmake --build build/core
 ctest --test-dir build/core --output-on-failure
 ```
 
-入力写真と生成画像はリポジトリへ追加しないでください。身体・髪・表情のキャラクター素材はプロジェクトの自作素材です。
+入力写真と生成画像はリポジトリへ追加しないでください。
