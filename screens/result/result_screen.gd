@@ -4,6 +4,9 @@ extends FlowScreen
 @onready var result_audio_player: AudioStreamPlayer = %ResultAudioPlayer
 @onready var action_button: Button = %ActionButton
 @onready var success_count_label: Label = %SuccessCountLabel
+@onready var now_label: Label = (
+	$ScreenLayout/Receipt/ReceiptMargin/ReceiptContent/NowLabel
+)
 @onready var success_amount_label: Label = %SuccessAmountLabel
 @onready var failure_count_label: Label = %FailureCountLabel
 @onready var failure_amount_label: Label = %FailureAmountLabel
@@ -63,24 +66,38 @@ func update_result_amounts() -> void:
 
 
 func update_result_face() -> void:
+	var normal_image: Image
 	if (
-		run_context == null
-		or run_context.captured_face_image == null
-		or run_context.captured_face_image.is_empty()
+		run_context != null
+		and run_context.character_generation_succeeded
+		and run_context.generated_character_images != null
 	):
+		normal_image = (
+			run_context.generated_character_images.get("normal") as Image
+		)
+
+	if normal_image == null or normal_image.is_empty():
 		face_preview.texture = null
-		face_status_label.text = "顔写真なし"
+		face_status_label.text = "キャラクター画像なし"
 		face_status_label.visible = true
 		return
 
-	face_preview.texture = ImageTexture.create_from_image(
-		run_context.captured_face_image
-	)
+	face_preview.texture = ImageTexture.create_from_image(normal_image)
 	face_status_label.visible = false
 
 
+func update_now_label() -> void:
+	var now = Time.get_datetime_dict_from_system()
+
+	now_label.text = "%02d年%02d月%02d日" % [
+		now.year,
+		now.month,
+		now.day,
+	]
+
 func update_result_display() -> void:
 	update_result_amounts()
+	update_now_label()
 	update_result_face()
 
 
