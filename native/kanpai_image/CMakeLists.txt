@@ -9,7 +9,7 @@ option(KANPAI_BUILD_CLI "Build the debug command line tool" ON)
 option(KANPAI_BUILD_TESTS "Build native unit tests" ON)
 option(KANPAI_BUILD_GDEXTENSION "Build the Godot GDExtension" ON)
 
-find_package(OpenCV 4.14 REQUIRED COMPONENTS core imgproc objdetect)
+find_package(OpenCV 4.14 REQUIRED COMPONENTS core dnn imgproc objdetect)
 if(OpenCV_VERSION VERSION_GREATER_EQUAL 4.15)
     message(FATAL_ERROR
         "This project supports OpenCV 4.14.x, but ${OpenCV_VERSION} was found. "
@@ -23,6 +23,7 @@ set_target_properties(kanpai_image_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_include_directories(kanpai_image_core PUBLIC include)
 target_link_libraries(kanpai_image_core PUBLIC
     opencv_core
+    opencv_dnn
     opencv_imgproc
     opencv_objdetect
 )

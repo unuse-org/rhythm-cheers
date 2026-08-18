@@ -4,9 +4,7 @@ extends FlowScreen
 @onready var result_audio_player: AudioStreamPlayer = %ResultAudioPlayer
 @onready var action_button: Button = %ActionButton
 @onready var success_count_label: Label = %SuccessCountLabel
-@onready var now_label: Label = (
-	$ScreenLayout/Receipt/ReceiptMargin/ReceiptContent/NowLabel
-)
+@onready var now_label: Label = %NowLabel
 @onready var player_count_label: Label = %PlayerCountLabel
 @onready var success_amount_label: Label = %SuccessAmountLabel
 @onready var failure_count_label: Label = %FailureCountLabel

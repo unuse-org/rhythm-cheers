@@ -9,7 +9,7 @@
 #include <godot_cpp/classes/image.hpp>
 #include <godot_cpp/classes/node.hpp>
 #include <godot_cpp/variant/array.hpp>
-#include <godot_cpp/variant/string.hpp>
+#include <godot_cpp/variant/packed_byte_array.hpp>
 
 #include "kanpai_image/character_generator.hpp"
 #include "kanpai_image/kanpai_character_image_set.hpp"
@@ -25,8 +25,8 @@ public:
 
     bool configure(
         const Array& body_images,
-        const Array& panel_images,
-        const String& cascade_xml
+        const Array& decoration_images,
+        const PackedByteArray& face_detector_model
     );
     Ref<KanpaiCharacterImageSet> generate_sync(const Ref<Image>& input_image);
     bool generate_async(const Ref<Image>& input_image, std::int64_t request_id);
@@ -46,6 +46,7 @@ private:
     void stop_worker();
 
     kanpai_image::CharacterTemplateSet templates_;
+    kanpai_image::CharacterDecorations decorations_;
     kanpai_image::GenerationConfig config_;
     bool configured_ = false;
 

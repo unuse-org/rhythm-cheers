@@ -40,23 +40,32 @@ signal generation_failed(request_id: int, error_code: int, message: String)
 
 GUI実行では `native_processing_enabled` の初期値がtrue、headless実行ではfalseになる。trueの場合、ClassDBに `KanpaiImageProcessor` が存在すればinstantiateする。
 
-ProcessorをNodeとしてchildへ追加し、`generation_completed` と `generation_failed` を購読する。その後で身体画像、Panel画像、Cascade XMLを読み込み、Processorの `configure()` を呼ぶ。
+ProcessorをNodeとしてchildへ追加し、`generation_completed` と `generation_failed` を購読する。その後で身体画像、装飾画像、YuNet ONNXを読み込み、Processorの `configure()` を呼ぶ。
 
 ### 読み込む素材
 
-状態順序はNORMAL、PREPARE、JUDGING、SUCCESS、FAILUREで固定されている。
+Bodyの状態順序はNORMAL、PREPARE、JUDGING、SUCCESS、FAILUREで固定されている。
 
-| State | Body | Panel |
-| --- | --- | --- |
-| NORMAL | `normal.png` | `default_hair.png` |
-| PREPARE | `prepare.png` | `default_hair.png` |
-| JUDGING | `judging.png` | `default_hair.png` |
-| SUCCESS | `success.png` | `success_overlay.png` |
-| FAILURE | `failure.png` | `failure_overlay.png` |
+| State | Body |
+| --- | --- |
+| NORMAL | `normal.png` |
+| PREPARE | `prepare.png` |
+| JUDGING | `judging.png` |
+| SUCCESS | `success.png` |
+| FAILURE | `failure.png` |
+
+装飾素材は次の順序で固定されている。
+
+| Index | File | 適用状態 |
+| ---: | --- | --- |
+| 0 | `decorations/hair.png` | 全状態 |
+| 1 | `decorations/mustache.png` | 全状態 |
+| 2 | `decorations/cheeks.png` | SUCCESS |
+| 3 | `decorations/failure_mark.png` | FAILURE |
 
 すべて `assets/character_templates/` から読み込む。TextureからImageを取得し、RGBA8以外はRGBA8へ変換する。
 
-顔検出には `assets/character_templates/haarcascade_frontalface_alt.xml` を文字列として読み込む。
+顔検出には `assets/character_templates/models/face_detection_yunet_2023mar.onnx` をPackedByteArrayとして読み込む。
 
 ### Request管理
 
@@ -86,8 +95,8 @@ C++とGDScriptで同じ整数順序を使用する。
 | 0 | `NONE` / `None` |
 | 1 | `EMPTY_INPUT` / `EmptyInput` |
 | 2 | `UNSUPPORTED_PIXEL_FORMAT` / `UnsupportedPixelFormat` |
-| 3 | `MISSING_CASCADE` / `MissingCascade` |
-| 4 | `INVALID_CASCADE` / `InvalidCascade` |
+| 3 | `MISSING_FACE_MODEL` / `MissingFaceModel` |
+| 4 | `INVALID_FACE_MODEL` / `InvalidFaceModel` |
 | 5 | `FACE_NOT_FOUND` / `FaceNotFound` |
 | 6 | `MISSING_TEMPLATE` / `MissingTemplate` |
 | 7 | `INVALID_TEMPLATE` / `InvalidTemplate` |
@@ -108,7 +117,7 @@ C++とGDScriptで同じ整数順序を使用する。
 Godotへ公開されるmethod:
 
 ```text
-configure(body_images, panel_images, cascade_xml) -> bool
+configure(body_images, decoration_images, face_detector_model) -> bool
 generate_sync(input_image) -> KanpaiCharacterImageSet
 generate_async(input_image, request_id) -> bool
 cancel(request_id) -> void
@@ -125,8 +134,8 @@ generation_failed(request_id, error_code, message)
 `configure()` は次の条件でfalseを返す。
 
 - workerが処理中。
-- BodyまたはPanelのArray要素数が5ではない。
-- Cascade XMLが空。
+- BodyのArray要素数が5、または装飾のArray要素数が4ではない。
+- YuNetモデルのPackedByteArrayが空。
 - いずれかのImageを有効なRGB8/RGBA8 bufferへ変換できない。
 
 ### KanpaiCharacterImageSet
@@ -162,12 +171,19 @@ Godot main thread上の `_process()` が完了flagを検出し、workerをjoin�
 | `max_input_width` | 1920 |
 | `max_input_height` | 1080 |
 | `minimum_face_size` | 60 |
-| `face_cut_scale` | 1.0 |
-| `face_aspect_x` | 0.72 |
-| `face_aspect_y` | 0.95 |
 | `face_blur_size` | 7 |
-| `panel_scale_multiplier` | 0.90 |
-| `panel_lift_ratio` | -0.063 |
+| `face_score_threshold` | 0.85 |
+| `face_nms_threshold` | 0.3 |
+| `hair_width_ratio` | 0.90 |
+| `hair_top_ratio` | -0.08 |
+| `mustache_mouth_width_multiplier` | 1.65 |
+| `mustache_vertical_offset_ratio` | -0.02 |
+| `mustache_max_rotation_degrees` | 20.0 |
+| `cheeks_width_ratio` | 0.63 |
+| `cheeks_top_ratio` | 0.60 |
+| `failure_mark_width_ratio` | 0.23 |
+| `failure_mark_left_ratio` | 0.68 |
+| `failure_mark_top_ratio` | 0.15 |
 | `head_width_ratio` | 0.36 |
 
 GDExtensionが状態ごとに設定する角度、横Offset、頭部下端Anchorは次のとおり。
@@ -182,23 +198,23 @@ GDExtensionが状態ごとに設定する角度、横Offset、頭部下端Anchor
 
 ### 生成手順
 
-1. 入力Image、Cascade、出力サイズ、5状態のBody/Panelを検証する。
+1. 入力Image、YuNetモデル、出力サイズ、5状態のBody、4枚の装飾を検証する。
 2. 入力が1920 × 1080を超える場合、aspect比を維持して範囲内へ縮小する。
-3. BGRAからGrayへ変換し、Histogramをequalizeする。
-4. Haar Cascadeの `detectMultiScale()` で顔を検出する。
-5. 複数顔がある場合、面積が最大の矩形を選ぶ。
-6. 顔矩形を切り出し、楕円Maskと7px Gaussian blurでalphaを作る。
-7. 顔と状態別Panelをalpha合成して頭部画像を作る。
+3. BGRAからBGRへ変換し、YuNetで顔矩形、両目、鼻先、左右口角を検出する。
+4. 複数顔がある場合、minimum size以上で面積が最大の顔を選ぶ。
+5. 目・鼻・口角を顔軸として額、頬、顎の輪郭点を作り、Catmull-Rom曲線で補間する。
+6. 輪郭を塗りつぶし、7px Gaussian blurでalphaを作って顔を切り抜く。
+7. 各装飾の透明余白を除き、顔を基準にresize・配置して頭部画像を作る。ひげは口角間距離から幅、口角中点から中心、口角を結ぶ線から角度を決める。髪とひげは全状態、ほっぺはSUCCESS、失敗マークはFAILUREだけに合成する。
 8. 頭部幅を出力幅の36%へresizeする。
 9. 状態別角度で回転し、透明余白をtrimする。
 10. 状態別X offsetとY anchorでBodyへalpha合成する。
 11. 628 × 1116のRGBA8画像を5枚返す。
 
-`detectMultiScale()` のscale factorは1.1、min neighborsは3、minimum sizeは60 × 60である。
+YuNetのscore thresholdは0.85、NMS thresholdは0.3、minimum face sizeは60 × 60である。
 
-顔のMaskは検出矩形中心に作られ、楕円半径は横 `face.width × 0.5 × 0.72`、縦 `face.height × 0.5 × 0.95` である。
+顔のMaskはYuNetの5点から推定した輪郭であり、画素単位で肌境界を検出したセグメンテーション結果ではない。輪郭上側は髪素材で隠れるため、頬から顎の形状を優先している。
 
-Panelは顔幅に対して0.90倍になるようscaleし、顔とPanelの中心を合わせた後、Panel高さの-0.063倍だけy方向へ移動する。現在のPanelは髪・表情等を1枚にまとめた画像として扱われる。
+装飾位置は検出顔の幅・高さを1.0とする比率で指定する。髪、ひげ、ほっぺは顔の水平方向中央へ配置し、失敗マークだけは左端位置を指定する。装飾は独立して配置されるため、状態固有の表情素材を追加しても髪とひげの大きさ・位置は変化しない。
 
 ## FaceCaptureScreenでの失敗処理
 

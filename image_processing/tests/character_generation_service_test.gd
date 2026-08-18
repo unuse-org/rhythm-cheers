@@ -8,15 +8,17 @@ class FakeProcessor:
 
 	var processing: bool = false
 	var configured: bool = false
+	var configured_decoration_count: int = 0
 	var cancelled_requests: Array[int] = []
 	var started_requests: Array[int] = []
 
 	func configure(
 		_body_images: Array,
-		_panel_images: Array,
-		_cascade_xml: String
+		_decoration_images: Array,
+		_face_detector_model: PackedByteArray
 	) -> bool:
 		configured = true
+		configured_decoration_count = _decoration_images.size()
 		return true
 
 	func generate_async(_image: Image, request_id: int) -> bool:
@@ -63,6 +65,11 @@ func run_tests() -> void:
 	await process_frame
 
 	expect_true(service.is_available, "Fake processorを初期化する")
+	expect_equal(
+		processor.configured_decoration_count,
+		4,
+		"髪・ひげ・ほっぺ・失敗マークを個別に設定する"
+	)
 	var input := Image.create(16, 16, false, Image.FORMAT_RGBA8)
 	input.fill(Color.WHITE)
 	var first_request := service.generate(input)

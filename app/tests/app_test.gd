@@ -3,6 +3,25 @@ extends SceneTree
 const APP_SCENE_PATH: String = "res://app/app.tscn"
 const MAIN_SCENE_PATH: String = "res://main/main.tscn"
 
+class FakeCharacterImageSet:
+	extends Resource
+
+	var normal: Image
+
+
+class FakePlayerCountStore:
+	extends PlayerCountStore
+
+	var total_count: int = 40
+	var record_call_count: int = 0
+
+
+	func record_player() -> int:
+		record_call_count += 1
+		total_count += 1
+		return total_count
+
+
 var failures: Array[String] = []
 
 
@@ -19,6 +38,8 @@ func run_tests() -> void:
 func test_app_flow() -> void:
 	var app_scene := load(APP_SCENE_PATH) as PackedScene
 	var app := app_scene.instantiate() as RhythmCheersApp
+	var player_count_store := FakePlayerCountStore.new()
+	app.player_count_store = player_count_store
 	root.add_child(app)
 	await process_frame
 
@@ -131,6 +152,17 @@ func test_app_flow() -> void:
 	expect_true(main_music_player.playing, "ゲーム開始と同時に音楽を再生する")
 	rhythm_session.cheers_success_count = 3
 	rhythm_session.cheers_failure_count = 1
+	var result_character_image := Image.create(
+		2,
+		2,
+		false,
+		Image.FORMAT_RGBA8
+	)
+	result_character_image.fill(Color.RED)
+	var generated_images := FakeCharacterImageSet.new()
+	generated_images.normal = result_character_image
+	app.run_context.generated_character_images = generated_images
+	app.run_context.character_generation_succeeded = true
 	var completed_context := app.run_context
 
 	# 曲終了を再現し、重複通知されてもRESULTを越えないことを確認する。
@@ -144,6 +176,12 @@ func test_app_flow() -> void:
 	)
 	expect_equal(app.run_context.cheers_success_count, 3, "成功数を引き継ぐ")
 	expect_equal(app.run_context.cheers_failure_count, 1, "失敗数を引き継ぐ")
+	expect_equal(app.run_context.player_number, 41, "累計41人目を割り当てる")
+	expect_equal(
+		player_count_store.record_call_count,
+		1,
+		"Mainの重複完了通知でも人数を一度だけ加算する"
+	)
 	expect_equal(app.run_context.calculate_success_amount(), 1500, "成功金額")
 	expect_equal(app.run_context.calculate_failure_amount(), -50, "失敗金額")
 	expect_equal(app.run_context.calculate_total_amount(), 1450, "合計金額")
@@ -182,9 +220,19 @@ func test_app_flow() -> void:
 		"¥1450",
 		"リザルト画面に合計金額を表示する"
 	)
+	expect_equal(
+		result_screen.player_count_label.text,
+		"No 041",
+		"リザルト画面に累計人数を表示する"
+	)
 	expect_true(
 		result_screen.face_preview.texture != null,
-		"リザルト画面に撮影画像を表示する"
+		"リザルト画面にNORMAL生成画像を表示する"
+	)
+	expect_equal(
+		result_screen.face_preview.texture.get_image().get_pixel(0, 0),
+		Color.RED,
+		"撮影画像ではなくNORMAL生成画像を利用する"
 	)
 
 	app.active_sensor_provider.input_detected.emit(
@@ -205,6 +253,7 @@ func test_app_flow() -> void:
 	)
 	expect_equal(app.run_context.cheers_success_count, 0, "成功数を初期化する")
 	expect_equal(app.run_context.cheers_failure_count, 0, "失敗数を初期化する")
+	expect_equal(app.run_context.player_number, 0, "累計人数の表示値を初期化する")
 	expect_true(
 		not app.run_context.tutorial_completed,
 		"チュートリアル状態を初期化する"

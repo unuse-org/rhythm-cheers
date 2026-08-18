@@ -7,15 +7,15 @@ const BODY_PATHS: Array[String] = [
 	"res://assets/character_templates/success.png",
 	"res://assets/character_templates/failure.png",
 ]
-const PANEL_PATHS: Array[String] = [
-	"res://assets/character_templates/default_hair.png",
-	"res://assets/character_templates/default_hair.png",
-	"res://assets/character_templates/default_hair.png",
-	"res://assets/character_templates/success_overlay.png",
-	"res://assets/character_templates/failure_overlay.png",
+const DECORATION_PATHS: Array[String] = [
+	"res://assets/character_templates/decorations/hair.png",
+	"res://assets/character_templates/decorations/mustache.png",
+	"res://assets/character_templates/decorations/cheeks.png",
+	"res://assets/character_templates/decorations/failure_mark.png",
 ]
-const CASCADE_PATH: String = (
-	"res://assets/character_templates/haarcascade_frontalface_alt.xml"
+const FACE_DETECTOR_MODEL_PATH: String = (
+	"res://assets/character_templates/models/"
+	+ "face_detection_yunet_2023mar.onnx"
 )
 
 var failures: Array[String] = []
@@ -46,20 +46,20 @@ func run_tests() -> void:
 	processor.connect("generation_completed", _on_generation_completed)
 	processor.connect("generation_failed", _on_generation_failed)
 	var body_images: Array[Image] = []
-	var panel_images: Array[Image] = []
+	var decoration_images: Array[Image] = []
 	for path: String in BODY_PATHS:
 		body_images.append((load(path) as Texture2D).get_image())
-	for path: String in PANEL_PATHS:
-		panel_images.append((load(path) as Texture2D).get_image())
+	for path: String in DECORATION_PATHS:
+		decoration_images.append((load(path) as Texture2D).get_image())
 
 	expect_true(
 		processor.call(
 			"configure",
 			body_images,
-			panel_images,
-			FileAccess.get_file_as_string(CASCADE_PATH)
+			decoration_images,
+			FileAccess.get_file_as_bytes(FACE_DETECTOR_MODEL_PATH)
 		),
-		"Godot Imageから5状態の素材を設定する"
+		"Godot Imageから身体と4種類の装飾素材を設定する"
 	)
 	expect_true(
 		processor.call("generate_sync", Image.new()) == null,

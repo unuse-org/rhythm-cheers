@@ -150,8 +150,9 @@ StartOverlayを表示したまま1.5秒待ち、`start_game()` でOverlayを隠�
 | 失敗件数 | `cheers_failure_count` |
 | 失敗金額 | 失敗件数 × -¥50 |
 | 合計 | 成功金額 + 失敗金額 |
-| 顔写真 | `captured_face_image`から生成したImageTexture |
+| 累計人数 | `player_number`を3桁ゼロ埋めの「No NNN」として表示 |
+| キャラクター画像 | `generated_character_images.normal`から生成したImageTexture |
 
-RunContextがnullの場合、金額と件数は `--` になる。撮影画像がnullまたは空の場合、FacePreviewを空にして「顔写真なし」を表示する。
+RunContextがnullの場合、金額と件数は `--` になる。`player_number`が0以下の場合、累計番号は「No ---」になる。キャラクター生成が未成功、画像セットがnull、またはNORMAL画像が空の場合、FacePreviewを空にして「キャラクター画像なし」を表示する。撮影元の`captured_face_image`はResultには表示しない。
 
 `_ready()` で `assets/audio/result.mp3` が設定されていれば再生する。ActionButtonまたはCHEERS入力で空Payloadの完了Signalをemitし、AppがTitleへ遷移する。

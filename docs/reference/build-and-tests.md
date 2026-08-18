@@ -28,7 +28,7 @@ brew "opencv@4"
 | CMake minimum | 3.21 |
 | C++ standard | C++17 |
 | OpenCV | 4.14.xのみ |
-| OpenCV component | core, imgproc, objdetect |
+| OpenCV component | core, dnn, imgproc, objdetect |
 | CLI追加component | imgcodecs |
 | Core target | `kanpai_image_core` static library |
 | CLI target | `kanpai_image_cli` |
@@ -79,6 +79,9 @@ ctest --preset macos-arm64-debug
 - 半透明RGBA画像のsource-over alpha合成
 - 負座標に置いたOverlayのclip
 - 空入力が `GenerationError::EmptyInput` を返すこと
+- 髪とひげを全状態へ合成すること
+- ほっぺと失敗マークを対象状態だけへ合成すること
+- 装飾素材の透明余白が合成位置へ影響しないこと
 
 CTestには `kanpai_image_tests` という名前で1件登録される。
 
@@ -93,6 +96,7 @@ godot --headless --path . --script path/to/test.gd
 | Test script | 主な検証対象 |
 | --- | --- |
 | `app/tests/app_test.gd` | 画面遷移、Payload、Provider所有 |
+| `app/tests/player_count_store_test.gd` | 累計人数の初期値、保存、加算、再読込 |
 | `app/tests/scene_flow_test.gd` | 画面順序、path、RunContext、Scene load |
 | `camera/tests/camera_capture_source_test.gd` | Fake撮影、format選択 |
 | `image_processing/tests/character_generation_service_test.gd` | cancel、pending、古い結果の破棄 |

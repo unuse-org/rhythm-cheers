@@ -22,6 +22,8 @@ var active_sensor_provider: SensorProvider
 var current_screen_id: SceneFlow.ScreenId = SceneFlow.ScreenId.TITLE
 var current_screen: Node
 var run_context: RunContext
+# テストでは保存先を汚さないFakeへ差し替えられる。
+var player_count_store: PlayerCountStore
 
 # 同じ乾杯入力で複数画面進まないよう、差し替え中は入力を止める。
 var transition_locked: bool = false
@@ -30,6 +32,8 @@ var transition_locked: bool = false
 func _ready() -> void:
 	# タイトルからリザルトまで同じRunContextを引き回す。
 	run_context = RunContext.new()
+	if player_count_store == null:
+		player_count_store = PlayerCountStore.new()
 	show_screen(SceneFlow.get_initial_screen())
 	initialize_sensor_provider()
 
@@ -121,6 +125,11 @@ func _on_screen_completed(payload: Dictionary) -> void:
 		return
 
 	apply_screen_payload(payload)
+
+	# Mainを完走した時点で現在の体験者を累計へ一度だけ記録する。
+	# transition_lockedにより、Mainからの重複完了通知では再加算されない。
+	if current_screen_id == SceneFlow.ScreenId.MAIN:
+		run_context.player_number = player_count_store.record_player()
 
 	var next_screen_id := SceneFlow.get_next_screen(current_screen_id)
 

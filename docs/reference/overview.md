@@ -28,6 +28,8 @@ flowchart LR
     Provider[SensorProvider] --> App[RhythmCheersApp]
     App --> Screen[表示中の画面]
     App <--> Context[RunContext]
+    App --> CountStore[PlayerCountStore]
+    CountStore --> CountFile[user://player_count.cfg]
     Screen --> Rhythm[RhythmSession]
     Rhythm --> Visual[GameplayVisual]
     Screen --> Camera[CameraCaptureSource]
@@ -44,6 +46,7 @@ flowchart LR
 | `RhythmCheersApp` | `app/app.gd` | 画面生成、画面遷移、入力配送、`RunContext`所有 |
 | `SceneFlow` | `flow/scene_flow.gd` | 画面順序とシーンパス |
 | `RunContext` | `flow/run_context.gd` | 1プレイ中に画面間で共有するデータ |
+| `PlayerCountStore` | `app/player_count_store.gd` | 端末内の累計体験者数の読込と保存 |
 | `FlowScreen` | `screens/flow_screen.gd` | 標準画面の完了Signalと重複完了防止 |
 | `SensorProvider` | `sensor/sensor_provider.gd` | 入力元のSignalインターフェース |
 | `CameraCaptureSource` | `camera/camera_capture_source.gd` | カメラ状態、Preview、撮影結果のインターフェース |

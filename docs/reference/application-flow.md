@@ -73,6 +73,19 @@ Title、FaceCapture、Tutorial、Resultは `FlowScreen` を継承する。Main�
 
 Appの `apply_screen_payload()` が `RunContext` へ反映するのは `tutorial_completed`、`cheers_success_count`、`cheers_failure_count` だけである。
 
+MainからResultへ遷移する直前に、Appは `PlayerCountStore.record_player()` を1回呼ぶ。保存後の累計人数を `RunContext.player_number` へ設定してからResultを生成する。遷移開始後は `transition_locked` がtrueになるため、Mainが完了通知を重複しても人数は再加算されない。
+
+## PlayerCountStore
+
+`app/player_count_store.gd` は端末内の累計体験者数を `user://player_count.cfg` へConfigFile形式で保存する。
+
+```ini
+[players]
+total_count=1
+```
+
+保存ファイルがない場合の累計人数は0である。`record_player()` は現在値へ1を加えて保存し、保存後の値を返す。読込値が負数の場合は0として扱う。読込に失敗した場合も0から開始し、保存に失敗した場合は0を返す。
+
 ## RunContext
 
 `RunContext` は `RefCounted` で、1回のTitleからResultまで同じインスタンスが使われる。
@@ -86,6 +99,7 @@ Appの `apply_screen_payload()` が `RunContext` へ反映するのは `tutorial
 | `tutorial_completed` | `bool` | Tutorial完了Payloadでtrueになる |
 | `cheers_success_count` | `int` | Main完了時の成功数 |
 | `cheers_failure_count` | `int` | Main完了時の失敗数 |
+| `player_number` | `int` | Result遷移時に割り当てられた累計体験者数 |
 
 金額計算は次の定数と関数を使う。
 

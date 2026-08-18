@@ -13,6 +13,8 @@ var character_generation_succeeded: bool = false
 var tutorial_completed: bool = false
 var cheers_success_count: int = 0
 var cheers_failure_count: int = 0
+# Resultへ遷移した時点で永続カウンターから割り当てられる累計人数。
+var player_number: int = 0
 
 # 成功
 func calculate_success_amount() -> int:
@@ -37,3 +39,4 @@ func clear() -> void:
 	tutorial_completed = false
 	cheers_success_count = 0
 	cheers_failure_count = 0
+	player_number = 0

@@ -5,6 +5,7 @@
 #include <iostream>
 #include <iterator>
 #include <string>
+#include <vector>
 
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
@@ -54,8 +55,8 @@ bool save_image(
     return cv::imwrite(path.string(), bgra);
 }
 
-std::string read_text(const std::filesystem::path& path) {
-    std::ifstream input(path);
+std::vector<std::uint8_t> read_binary(const std::filesystem::path& path) {
+    std::ifstream input(path, std::ios::binary);
     return {
         std::istreambuf_iterator<char>(input),
         std::istreambuf_iterator<char>()
@@ -67,25 +68,18 @@ std::string read_text(const std::filesystem::path& path) {
 int main(int argument_count, char** arguments) {
     if (argument_count != 6) {
         std::cerr
-            << "Usage: kanpai_image_cli <input> <template-dir> <cascade.xml> "
-            << "<output-dir> <panel-dir>\n";
+            << "Usage: kanpai_image_cli <input> <template-dir> <yunet.onnx> "
+            << "<output-dir> <decoration-dir>\n";
         return 2;
     }
 
     const std::filesystem::path input_path = arguments[1];
     const std::filesystem::path template_directory = arguments[2];
-    const std::filesystem::path cascade_path = arguments[3];
+    const std::filesystem::path face_detector_model_path = arguments[3];
     const std::filesystem::path output_directory = arguments[4];
-    const std::filesystem::path panel_directory = arguments[5];
+    const std::filesystem::path decoration_directory = arguments[5];
 
     kanpai_image::CharacterTemplateSet templates;
-    const std::array<const char*, kanpai_image::kCharacterStateCount> panels = {
-        "default_hair.png",
-        "default_hair.png",
-        "default_hair.png",
-        "success_overlay.png",
-        "failure_overlay.png",
-    };
     const std::array<double, kanpai_image::kCharacterStateCount> angles = {
         0.0, -13.0, 10.0, 0.0, 0.0,
     };
@@ -101,17 +95,27 @@ int main(int argument_count, char** arguments) {
             template_directory
                 / (std::string(kanpai_image::kCharacterStateNames[index]) + ".png")
         );
-        templates[index].panel = load_image(panel_directory / panels[index]);
         templates[index].head_angle_degrees = angles[index];
         templates[index].head_offset_x_ratio = offsets[index];
         templates[index].head_anchor_y_ratio = anchors_y[index];
     }
 
+    kanpai_image::CharacterDecorations decorations;
+    decorations.hair = load_image(decoration_directory / "hair.png");
+    decorations.mustache = load_image(
+        decoration_directory / "mustache.png"
+    );
+    decorations.cheeks = load_image(decoration_directory / "cheeks.png");
+    decorations.failure_mark = load_image(
+        decoration_directory / "failure_mark.png"
+    );
+
     kanpai_image::GenerationConfig config;
-    config.face_cascade_xml = read_text(cascade_path);
+    config.face_detector_model = read_binary(face_detector_model_path);
     auto result = kanpai_image::generate_character_images(
         load_image(input_path),
         templates,
+        decorations,
         config
     );
     if (!result.succeeded) {

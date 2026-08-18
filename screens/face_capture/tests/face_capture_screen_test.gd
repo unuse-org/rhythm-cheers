@@ -10,8 +10,8 @@ class FakeGenerationProcessor:
 
 	func configure(
 		_body_images: Array,
-		_panel_images: Array,
-		_cascade_xml: String
+		_decoration_images: Array,
+		_face_detector_model: PackedByteArray
 	) -> bool:
 		return true
 

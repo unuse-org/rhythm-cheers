@@ -9,6 +9,7 @@
 namespace godot {
 namespace {
 
+constexpr std::int64_t kDecorationCount = 4;
 constexpr std::array<double, kanpai_image::kCharacterStateCount> kAngles = {
     0.0, -13.0, 10.0, 0.0, 0.0,
 };
@@ -32,7 +33,12 @@ KanpaiImageProcessor::~KanpaiImageProcessor() {
 
 void KanpaiImageProcessor::_bind_methods() {
     ClassDB::bind_method(
-        D_METHOD("configure", "body_images", "panel_images", "cascade_xml"),
+        D_METHOD(
+            "configure",
+            "body_images",
+            "decoration_images",
+            "face_detector_model"
+        ),
         &KanpaiImageProcessor::configure
     );
     ClassDB::bind_method(
@@ -72,14 +78,14 @@ void KanpaiImageProcessor::_bind_methods() {
 
 bool KanpaiImageProcessor::configure(
     const Array& body_images,
-    const Array& panel_images,
-    const String& cascade_xml
+    const Array& decoration_images,
+    const PackedByteArray& face_detector_model
 ) {
     if (
         processing_.load()
         || body_images.size() != kanpai_image::kCharacterStateCount
-        || panel_images.size() != kanpai_image::kCharacterStateCount
-        || cascade_xml.is_empty()
+        || decoration_images.size() != kDecorationCount
+        || face_detector_model.is_empty()
     ) {
         return false;
     }
@@ -87,26 +93,39 @@ bool KanpaiImageProcessor::configure(
     kanpai_image::CharacterTemplateSet next_templates;
     for (std::size_t index = 0; index < next_templates.size(); ++index) {
         const Ref<Image> body = body_images[static_cast<std::int64_t>(index)];
-        const Ref<Image> panel = panel_images[static_cast<std::int64_t>(index)];
         next_templates[index].body = image_to_buffer(body);
-        next_templates[index].panel = image_to_buffer(panel);
         next_templates[index].head_angle_degrees = kAngles[index];
         next_templates[index].head_offset_x_ratio = kOffsetsX[index];
         next_templates[index].head_anchor_y_ratio = kAnchorsY[index];
 
-        if (
-            !next_templates[index].body.is_valid()
-            || !next_templates[index].panel.is_valid()
-        ) {
+        if (!next_templates[index].body.is_valid()) {
             return false;
         }
     }
 
-    const CharString cascade_utf8 = cascade_xml.utf8();
+    kanpai_image::CharacterDecorations next_decorations;
+    const Ref<Image> hair = decoration_images[0];
+    const Ref<Image> mustache = decoration_images[1];
+    const Ref<Image> cheeks = decoration_images[2];
+    const Ref<Image> failure_mark = decoration_images[3];
+    next_decorations.hair = image_to_buffer(hair);
+    next_decorations.mustache = image_to_buffer(mustache);
+    next_decorations.cheeks = image_to_buffer(cheeks);
+    next_decorations.failure_mark = image_to_buffer(failure_mark);
+    if (
+        !next_decorations.hair.is_valid()
+        || !next_decorations.mustache.is_valid()
+        || !next_decorations.cheeks.is_valid()
+        || !next_decorations.failure_mark.is_valid()
+    ) {
+        return false;
+    }
+
     templates_ = std::move(next_templates);
-    config_.face_cascade_xml.assign(
-        cascade_utf8.get_data(),
-        static_cast<std::size_t>(cascade_utf8.length())
+    decorations_ = std::move(next_decorations);
+    config_.face_detector_model.assign(
+        face_detector_model.ptr(),
+        face_detector_model.ptr() + face_detector_model.size()
     );
     config_.cancellation_requested = [this]() {
         return cancellation_requested_.load();
@@ -126,6 +145,7 @@ Ref<KanpaiCharacterImageSet> KanpaiImageProcessor::generate_sync(
     const auto result = kanpai_image::generate_character_images(
         image_to_buffer(input_image),
         templates_,
+        decorations_,
         config_
     );
     if (!result.succeeded) {
@@ -160,6 +180,7 @@ bool KanpaiImageProcessor::generate_async(
         auto result = kanpai_image::generate_character_images(
             input,
             templates_,
+            decorations_,
             config_
         );
         {

@@ -75,6 +75,7 @@ func test_run_context() -> void:
 	expect_true(not context.tutorial_completed, "チュートリアル状態の初期値")
 	expect_equal(context.cheers_success_count, 0, "成功数の初期値")
 	expect_equal(context.cheers_failure_count, 0, "失敗数の初期値")
+	expect_equal(context.player_number, 0, "累計人数の初期値")
 	expect_equal(context.calculate_total_amount(), 0, "合計金額の初期値")
 
 	context.captured_face_image = Image.create(1, 1, false, Image.FORMAT_RGBA8)
@@ -84,6 +85,7 @@ func test_run_context() -> void:
 	context.tutorial_completed = true
 	context.cheers_success_count = 3
 	context.cheers_failure_count = 1
+	context.player_number = 12
 	expect_equal(context.calculate_success_amount(), 1500, "成功金額を計算する")
 	expect_equal(context.calculate_failure_amount(), -50, "失敗金額を計算する")
 	expect_equal(context.calculate_total_amount(), 1450, "合計金額を計算する")
@@ -102,6 +104,7 @@ func test_run_context() -> void:
 	expect_true(not context.tutorial_completed, "チュートリアル状態を戻す")
 	expect_equal(context.cheers_success_count, 0, "成功数を戻す")
 	expect_equal(context.cheers_failure_count, 0, "失敗数を戻す")
+	expect_equal(context.player_number, 0, "累計人数を戻す")
 	expect_equal(context.calculate_total_amount(), 0, "合計金額を戻す")
 
 

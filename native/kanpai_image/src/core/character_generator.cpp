@@ -80,75 +80,162 @@ cv::Mat resize_input_if_needed(
     return resized;
 }
 
-bool load_cascade_from_memory(
-    const std::string& cascade_xml,
-    cv::CascadeClassifier& classifier
-) {
-    if (cascade_xml.empty()) {
-        return false;
-    }
-
-    try {
-        cv::FileStorage storage(
-            cascade_xml,
-            cv::FileStorage::READ | cv::FileStorage::MEMORY
-        );
-        return storage.isOpened()
-            && classifier.read(storage.getFirstTopLevelNode());
-    } catch (const cv::Exception&) {
-        return false;
-    }
-}
-
 enum class FaceDetectionStatus {
     Found,
-    InvalidCascade,
+    InvalidModel,
     NotFound,
+};
+
+struct DetectedFace {
+    cv::Rect bounds;
+    cv::Point2f right_eye;
+    cv::Point2f left_eye;
+    cv::Point2f nose_tip;
+    cv::Point2f right_mouth_corner;
+    cv::Point2f left_mouth_corner;
+};
+
+struct ExtractedFace {
+    cv::Mat image;
+    cv::Point2f mouth_center;
+    float mouth_width = 0.0F;
+    double mouth_angle_degrees = 0.0;
 };
 
 FaceDetectionStatus detect_primary_face(
     const cv::Mat& input_bgra,
     const GenerationConfig& config,
-    cv::Rect& out_face
+    DetectedFace& out_face
 ) {
-    cv::CascadeClassifier classifier;
-    if (!load_cascade_from_memory(config.face_cascade_xml, classifier)) {
-        return FaceDetectionStatus::InvalidCascade;
+    if (config.face_detector_model.empty()) {
+        return FaceDetectionStatus::InvalidModel;
     }
 
-    cv::Mat gray;
-    cv::cvtColor(input_bgra, gray, cv::COLOR_BGRA2GRAY);
-    cv::equalizeHist(gray, gray);
-    std::vector<cv::Rect> faces;
-    classifier.detectMultiScale(
-        gray,
-        faces,
-        1.1,
-        3,
-        0,
-        cv::Size(config.minimum_face_size, config.minimum_face_size)
-    );
-
-    if (faces.empty()) {
-        return FaceDetectionStatus::NotFound;
-    }
-
-    out_face = *std::max_element(
-        faces.begin(),
-        faces.end(),
-        [](const cv::Rect& left, const cv::Rect& right) {
-            return left.area() < right.area();
+    try {
+        const std::vector<uchar> empty_config;
+        auto detector = cv::FaceDetectorYN::create(
+            "onnx",
+            config.face_detector_model,
+            empty_config,
+            input_bgra.size(),
+            config.face_score_threshold,
+            config.face_nms_threshold
+        );
+        if (detector.empty()) {
+            return FaceDetectionStatus::InvalidModel;
         }
-    );
-    return FaceDetectionStatus::Found;
+
+        cv::Mat input_bgr;
+        cv::cvtColor(input_bgra, input_bgr, cv::COLOR_BGRA2BGR);
+        cv::Mat faces;
+        detector->detect(input_bgr, faces);
+        if (faces.empty()) {
+            return FaceDetectionStatus::NotFound;
+        }
+
+        int primary_index = -1;
+        float largest_area = 0.0F;
+        for (int index = 0; index < faces.rows; ++index) {
+            const float width = faces.at<float>(index, 2);
+            const float height = faces.at<float>(index, 3);
+            if (
+                width < config.minimum_face_size
+                || height < config.minimum_face_size
+            ) {
+                continue;
+            }
+            const float area = width * height;
+            if (area > largest_area) {
+                largest_area = area;
+                primary_index = index;
+            }
+        }
+
+        if (primary_index < 0) {
+            return FaceDetectionStatus::NotFound;
+        }
+
+        const auto value = [&faces, primary_index](int column) {
+            return faces.at<float>(primary_index, column);
+        };
+        out_face.bounds = cv::Rect(
+            static_cast<int>(std::floor(value(0))),
+            static_cast<int>(std::floor(value(1))),
+            std::max(1, static_cast<int>(std::ceil(value(2)))),
+            std::max(1, static_cast<int>(std::ceil(value(3))))
+        );
+        out_face.right_eye = cv::Point2f(value(4), value(5));
+        out_face.left_eye = cv::Point2f(value(6), value(7));
+        out_face.nose_tip = cv::Point2f(value(8), value(9));
+        out_face.right_mouth_corner = cv::Point2f(value(10), value(11));
+        out_face.left_mouth_corner = cv::Point2f(value(12), value(13));
+        return FaceDetectionStatus::Found;
+    } catch (const cv::Exception&) {
+        return FaceDetectionStatus::InvalidModel;
+    }
 }
 
-cv::Mat extract_face(
+cv::Point2f normalized(const cv::Point2f& vector) {
+    const float length = cv::norm(vector);
+    return length > 0.001F
+        ? vector * (1.0F / length)
+        : cv::Point2f(0.0F, 1.0F);
+}
+
+cv::Point2f contour_point(
+    const cv::Point2f& center,
+    const cv::Point2f& horizontal_axis,
+    const cv::Point2f& vertical_axis,
+    float horizontal_offset,
+    float vertical_offset
+) {
+    return center
+        + horizontal_axis * horizontal_offset
+        + vertical_axis * vertical_offset;
+}
+
+std::vector<cv::Point> smooth_closed_contour(
+    const std::vector<cv::Point2f>& anchors,
+    const cv::Size& bounds
+) {
+    constexpr int kStepsPerSegment = 8;
+    std::vector<cv::Point> result;
+    result.reserve(anchors.size() * kStepsPerSegment);
+    const auto count = static_cast<int>(anchors.size());
+
+    for (int index = 0; index < count; ++index) {
+        const cv::Point2f& point0 = anchors[(index - 1 + count) % count];
+        const cv::Point2f& point1 = anchors[index];
+        const cv::Point2f& point2 = anchors[(index + 1) % count];
+        const cv::Point2f& point3 = anchors[(index + 2) % count];
+
+        for (int step = 0; step < kStepsPerSegment; ++step) {
+            const float t = static_cast<float>(step) / kStepsPerSegment;
+            const float t2 = t * t;
+            const float t3 = t2 * t;
+            const cv::Point2f point = 0.5F * (
+                2.0F * point1
+                + (-point0 + point2) * t
+                + (2.0F * point0 - 5.0F * point1
+                    + 4.0F * point2 - point3) * t2
+                + (-point0 + 3.0F * point1
+                    - 3.0F * point2 + point3) * t3
+            );
+            result.emplace_back(
+                std::clamp(cvRound(point.x), 1, bounds.width - 2),
+                std::clamp(cvRound(point.y), 1, bounds.height - 2)
+            );
+        }
+    }
+    return result;
+}
+
+ExtractedFace extract_face(
     const cv::Mat& input_bgra,
-    const cv::Rect& detected_face,
+    const DetectedFace& detected_face,
     const GenerationConfig& config
 ) {
-    const cv::Rect safe_face = detected_face
+    const cv::Rect safe_face = detected_face.bounds
         & cv::Rect(0, 0, input_bgra.cols, input_bgra.rows);
     if (safe_face.width <= 0 || safe_face.height <= 0) {
         return {};
@@ -156,18 +243,61 @@ cv::Mat extract_face(
 
     cv::Mat face = input_bgra(safe_face).clone();
     cv::Mat mask = cv::Mat::zeros(safe_face.size(), CV_8UC1);
-    const cv::Point center(safe_face.width / 2, safe_face.height / 2);
-    const cv::Size axes(
-        std::max(1, static_cast<int>(
-            safe_face.width * 0.5 * config.face_cut_scale
-            * config.face_aspect_x
-        )),
-        std::max(1, static_cast<int>(
-            safe_face.height * 0.5 * config.face_cut_scale
-            * config.face_aspect_y
-        ))
+    const cv::Point2f crop_offset(
+        static_cast<float>(safe_face.x),
+        static_cast<float>(safe_face.y)
     );
-    cv::ellipse(mask, center, axes, 0, 0, 360, cv::Scalar(255), -1);
+    const cv::Point2f right_eye = detected_face.right_eye - crop_offset;
+    const cv::Point2f left_eye = detected_face.left_eye - crop_offset;
+    const cv::Point2f nose_tip = detected_face.nose_tip - crop_offset;
+    const cv::Point2f right_mouth = (
+        detected_face.right_mouth_corner - crop_offset
+    );
+    const cv::Point2f left_mouth = (
+        detected_face.left_mouth_corner - crop_offset
+    );
+    const cv::Point2f eye_center = (right_eye + left_eye) * 0.5F;
+    const cv::Point2f mouth_center = (right_mouth + left_mouth) * 0.5F;
+    const cv::Point2f vertical_axis = normalized(mouth_center - eye_center);
+    const cv::Point2f horizontal_axis(
+        vertical_axis.y,
+        -vertical_axis.x
+    );
+    const float width = static_cast<float>(safe_face.width);
+    const float height = static_cast<float>(safe_face.height);
+    const float detected_center_x = (
+        eye_center.x + nose_tip.x + mouth_center.x
+    ) / 3.0F;
+    const cv::Point2f center_correction(
+        width * 0.5F - detected_center_x,
+        0.0F
+    );
+    const cv::Point2f contour_eye_center = eye_center + center_correction;
+    const cv::Point2f contour_nose_tip = nose_tip + center_correction;
+    const cv::Point2f contour_mouth_center = mouth_center + center_correction;
+
+    // YuNetの目・鼻・口を顔軸として使い、額、頬、顎を結ぶ輪郭を作る。
+    // 上側は髪素材で隠れるため、頬から顎の形状を優先している。
+    const std::vector<cv::Point2f> contour_anchors = {
+        contour_point(contour_eye_center, horizontal_axis, vertical_axis, 0.0F, -0.34F * height),
+        contour_point(contour_eye_center, horizontal_axis, vertical_axis, 0.28F * width, -0.29F * height),
+        contour_point(contour_eye_center, horizontal_axis, vertical_axis, 0.42F * width, -0.03F * height),
+        contour_point(contour_nose_tip, horizontal_axis, vertical_axis, 0.43F * width, 0.03F * height),
+        contour_point(contour_mouth_center, horizontal_axis, vertical_axis, 0.36F * width, 0.05F * height),
+        contour_point(contour_mouth_center, horizontal_axis, vertical_axis, 0.23F * width, 0.14F * height),
+        contour_point(contour_mouth_center, horizontal_axis, vertical_axis, 0.0F, 0.19F * height),
+        contour_point(contour_mouth_center, horizontal_axis, vertical_axis, -0.23F * width, 0.14F * height),
+        contour_point(contour_mouth_center, horizontal_axis, vertical_axis, -0.36F * width, 0.05F * height),
+        contour_point(contour_nose_tip, horizontal_axis, vertical_axis, -0.43F * width, 0.03F * height),
+        contour_point(contour_eye_center, horizontal_axis, vertical_axis, -0.42F * width, -0.03F * height),
+        contour_point(contour_eye_center, horizontal_axis, vertical_axis, -0.28F * width, -0.29F * height),
+    };
+    const std::vector<cv::Point> contour = smooth_closed_contour(
+        contour_anchors,
+        safe_face.size()
+    );
+    const std::vector<std::vector<cv::Point>> contours = {contour};
+    cv::fillPoly(mask, contours, cv::Scalar(255), cv::LINE_AA);
 
     int blur_size = std::max(1, config.face_blur_size);
     if (blur_size % 2 == 0) {
@@ -188,7 +318,19 @@ cv::Mat extract_face(
             );
         }
     }
-    return face;
+    ExtractedFace result;
+    result.image = std::move(face);
+    result.mouth_center = mouth_center;
+    result.mouth_width = cv::norm(left_mouth - right_mouth);
+    result.mouth_angle_degrees = std::clamp(
+        std::atan2(
+            left_mouth.y - right_mouth.y,
+            left_mouth.x - right_mouth.x
+        ) * 180.0 / CV_PI,
+        -config.mustache_max_rotation_degrees,
+        config.mustache_max_rotation_degrees
+    );
+    return result;
 }
 
 void alpha_over_in_place(
@@ -281,50 +423,172 @@ cv::Mat trim_transparent_margin(const cv::Mat& source) {
     return source(visible_bounds).clone();
 }
 
-cv::Mat build_head(
+cv::Mat resize_decoration(
+    const ImageBuffer& decoration,
+    int target_width
+) {
+    cv::Mat source = trim_transparent_margin(to_bgra(decoration));
+    if (source.empty() || target_width <= 0) {
+        return {};
+    }
+
+    const double scale = static_cast<double>(target_width)
+        / static_cast<double>(source.cols);
+    cv::Mat resized;
+    cv::resize(
+        source,
+        resized,
+        cv::Size(),
+        scale,
+        scale,
+        scale < 1.0 ? cv::INTER_AREA : cv::INTER_CUBIC
+    );
+    return resized;
+}
+
+struct PositionedLayer {
+    cv::Mat image;
+    cv::Point position;
+};
+
+void append_centered_decoration(
+    std::vector<PositionedLayer>& layers,
+    const ImageBuffer& decoration,
     const cv::Mat& face,
-    const cv::Mat& panel,
+    double width_ratio,
+    double top_ratio
+) {
+    cv::Mat image = resize_decoration(
+        decoration,
+        std::max(1, static_cast<int>(std::round(face.cols * width_ratio)))
+    );
+    const int position_x = (face.cols - image.cols) / 2;
+    layers.push_back({
+        std::move(image),
+        cv::Point(
+            position_x,
+            static_cast<int>(std::round(face.rows * top_ratio))
+        ),
+    });
+}
+
+cv::Mat build_head(
+    const ExtractedFace& extracted_face,
+    const CharacterDecorations& decorations,
+    CharacterState state,
     const GenerationConfig& config
 ) {
-    const double panel_scale = static_cast<double>(face.cols)
-        / static_cast<double>(panel.cols)
-        * config.panel_scale_multiplier;
-    cv::Mat scaled_panel;
-    cv::resize(
-        panel,
-        scaled_panel,
-        cv::Size(),
-        panel_scale,
-        panel_scale,
-        cv::INTER_AREA
+    const cv::Mat& face = extracted_face.image;
+    std::vector<PositionedLayer> layers;
+    layers.push_back({face, cv::Point(0, 0)});
+
+    if (state == CharacterState::Success) {
+        append_centered_decoration(
+            layers,
+            decorations.cheeks,
+            face,
+            config.cheeks_width_ratio,
+            config.cheeks_top_ratio
+        );
+    }
+    const int mustache_width = std::clamp(
+        static_cast<int>(std::round(
+            extracted_face.mouth_width
+                * config.mustache_mouth_width_multiplier
+        )),
+        std::max(1, static_cast<int>(std::round(face.cols * 0.35))),
+        std::max(1, static_cast<int>(std::round(face.cols * 0.75)))
+    );
+    cv::Mat mustache = resize_decoration(
+        decorations.mustache,
+        mustache_width
+    );
+    mustache = rotate_image(
+        mustache,
+        // atan2は画像座標の下向きYで求めるため、OpenCVの回転角とは符号が逆。
+        -extracted_face.mouth_angle_degrees
+    );
+    const cv::Point mustache_position(
+        cvRound(extracted_face.mouth_center.x) - mustache.cols / 2,
+        cvRound(
+            extracted_face.mouth_center.y
+                + face.rows * config.mustache_vertical_offset_ratio
+        ) - mustache.rows / 2
+    );
+    layers.push_back({
+        std::move(mustache),
+        mustache_position,
+    });
+    append_centered_decoration(
+        layers,
+        decorations.hair,
+        face,
+        config.hair_width_ratio,
+        config.hair_top_ratio
     );
 
-    const int panel_x = (face.cols - scaled_panel.cols) / 2;
-    const int panel_y = (face.rows - scaled_panel.rows) / 2
-        + static_cast<int>(std::round(
-            scaled_panel.rows * config.panel_lift_ratio
-        ));
-    const int minimum_x = std::min(0, panel_x);
-    const int minimum_y = std::min(0, panel_y);
-    const int maximum_x = std::max(face.cols, panel_x + scaled_panel.cols);
-    const int maximum_y = std::max(face.rows, panel_y + scaled_panel.rows);
+    if (state == CharacterState::Failure) {
+        cv::Mat failure_mark = resize_decoration(
+            decorations.failure_mark,
+            std::max(1, static_cast<int>(std::round(
+                face.cols * config.failure_mark_width_ratio
+            )))
+        );
+        layers.push_back({
+            std::move(failure_mark),
+            cv::Point(
+                static_cast<int>(std::round(
+                    face.cols * config.failure_mark_left_ratio
+                )),
+                static_cast<int>(std::round(
+                    face.rows * config.failure_mark_top_ratio
+                ))
+            ),
+        });
+    }
+
+    int minimum_x = 0;
+    int minimum_y = 0;
+    int maximum_x = face.cols;
+    int maximum_y = face.rows;
+    for (const auto& layer : layers) {
+        if (layer.image.empty()) {
+            return {};
+        }
+        minimum_x = std::min(minimum_x, layer.position.x);
+        minimum_y = std::min(minimum_y, layer.position.y);
+        maximum_x = std::max(
+            maximum_x,
+            layer.position.x + layer.image.cols
+        );
+        maximum_y = std::max(
+            maximum_y,
+            layer.position.y + layer.image.rows
+        );
+    }
+
     cv::Mat head = cv::Mat::zeros(
         maximum_y - minimum_y,
         maximum_x - minimum_x,
         CV_8UC4
     );
-    alpha_over_in_place(head, face, cv::Point(-minimum_x, -minimum_y));
-    alpha_over_in_place(
-        head,
-        scaled_panel,
-        cv::Point(panel_x - minimum_x, panel_y - minimum_y)
-    );
+    for (const auto& layer : layers) {
+        alpha_over_in_place(
+            head,
+            layer.image,
+            cv::Point(
+                layer.position.x - minimum_x,
+                layer.position.y - minimum_y
+            )
+        );
+    }
     return head;
 }
 
 GenerationResult validate_inputs(
     const ImageBuffer& captured_face,
     const CharacterTemplateSet& templates,
+    const CharacterDecorations& decorations,
     const GenerationConfig& config
 ) {
     if (!captured_face.is_valid()) {
@@ -333,9 +597,9 @@ GenerationResult validate_inputs(
             "撮影画像が空、または画像サイズが不正です。"
         );
     }
-    if (config.face_cascade_xml.empty()) {
+    if (config.face_detector_model.empty()) {
         return GenerationResult::failure(
-            GenerationError::MissingCascade,
+            GenerationError::MissingFaceModel,
             "顔検出モデルが設定されていません。"
         );
     }
@@ -348,7 +612,7 @@ GenerationResult validate_inputs(
 
     for (std::size_t index = 0; index < templates.size(); ++index) {
         const auto& item = templates[index];
-        if (!item.body.is_valid() || !item.panel.is_valid()) {
+        if (!item.body.is_valid()) {
             return GenerationResult::failure(
                 GenerationError::MissingTemplate,
                 std::string("状態素材が不足しています: ")
@@ -357,7 +621,6 @@ GenerationResult validate_inputs(
         }
         if (
             item.body.format != PixelFormat::Rgba8
-            || item.panel.format != PixelFormat::Rgba8
             || item.body.width != config.output_width
             || item.body.height != config.output_height
         ) {
@@ -365,6 +628,33 @@ GenerationResult validate_inputs(
                 GenerationError::InvalidTemplate,
                 std::string("状態素材の形式またはサイズが不正です: ")
                     + kCharacterStateNames[index]
+            );
+        }
+    }
+
+    const std::array<const ImageBuffer*, 4> decoration_images = {
+        &decorations.hair,
+        &decorations.mustache,
+        &decorations.cheeks,
+        &decorations.failure_mark,
+    };
+    const std::array<const char*, 4> decoration_names = {
+        "hair", "mustache", "cheeks", "failure_mark",
+    };
+    for (std::size_t index = 0; index < decoration_images.size(); ++index) {
+        const auto& image = *decoration_images[index];
+        if (!image.is_valid()) {
+            return GenerationResult::failure(
+                GenerationError::MissingTemplate,
+                std::string("装飾素材が不足しています: ")
+                    + decoration_names[index]
+            );
+        }
+        if (image.format != PixelFormat::Rgba8) {
+            return GenerationResult::failure(
+                GenerationError::InvalidTemplate,
+                std::string("装飾素材の形式が不正です: ")
+                    + decoration_names[index]
             );
         }
     }
@@ -377,11 +667,13 @@ GenerationResult validate_inputs(
 GenerationResult generate_character_images(
     const ImageBuffer& captured_face,
     const CharacterTemplateSet& templates,
+    const CharacterDecorations& decorations,
     const GenerationConfig& config
 ) {
     const GenerationResult validation = validate_inputs(
         captured_face,
         templates,
+        decorations,
         config
     );
     if (!validation.succeeded) {
@@ -396,15 +688,15 @@ GenerationResult generate_character_images(
 
     try {
         cv::Mat input = resize_input_if_needed(to_bgra(captured_face), config);
-        cv::Rect face_rectangle;
+        DetectedFace detected_face;
         const auto detection = detect_primary_face(
             input,
             config,
-            face_rectangle
+            detected_face
         );
-        if (detection == FaceDetectionStatus::InvalidCascade) {
+        if (detection == FaceDetectionStatus::InvalidModel) {
             return GenerationResult::failure(
-                GenerationError::InvalidCascade,
+                GenerationError::InvalidFaceModel,
                 "顔検出モデルを読み込めませんでした。"
             );
         }
@@ -415,8 +707,8 @@ GenerationResult generate_character_images(
             );
         }
 
-        cv::Mat face = extract_face(input, face_rectangle, config);
-        if (face.empty()) {
+        ExtractedFace face = extract_face(input, detected_face, config);
+        if (face.image.empty()) {
             return GenerationResult::failure(
                 GenerationError::ProcessingFailed,
                 "顔画像の切り抜きに失敗しました。"
@@ -434,8 +726,18 @@ GenerationResult generate_character_images(
 
             const CharacterTemplate& item = templates[index];
             cv::Mat body = to_bgra(item.body);
-            const cv::Mat panel = to_bgra(item.panel);
-            cv::Mat head = build_head(face, panel, config);
+            cv::Mat head = build_head(
+                face,
+                decorations,
+                static_cast<CharacterState>(index),
+                config
+            );
+            if (head.empty()) {
+                return GenerationResult::failure(
+                    GenerationError::ProcessingFailed,
+                    "装飾素材の配置に失敗しました。"
+                );
+            }
             const int target_width = std::max(1, static_cast<int>(std::round(
                 config.output_width * config.head_width_ratio
             )));
@@ -514,6 +816,32 @@ ImageBuffer alpha_over(
         cv::Point(position_x, position_y)
     );
     return from_bgra(base_bgra);
+}
+
+ImageBuffer compose_head(
+    const ImageBuffer& face,
+    const CharacterDecorations& decorations,
+    CharacterState state,
+    const GenerationConfig& config
+) {
+    if (!face.is_valid() || face.format != PixelFormat::Rgba8) {
+        return {};
+    }
+
+    ExtractedFace extracted_face;
+    extracted_face.image = to_bgra(face);
+    extracted_face.mouth_center = cv::Point2f(
+        face.width * 0.5F,
+        face.height * 0.75F
+    );
+    extracted_face.mouth_width = face.width * 0.35F;
+    const cv::Mat head = build_head(
+        extracted_face,
+        decorations,
+        state,
+        config
+    );
+    return head.empty() ? ImageBuffer{} : from_bgra(head);
 }
 
 }  // namespace detail

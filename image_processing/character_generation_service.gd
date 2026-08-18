@@ -9,8 +9,8 @@ enum GenerationError {
 	NONE = 0,
 	EMPTY_INPUT,
 	UNSUPPORTED_PIXEL_FORMAT,
-	MISSING_CASCADE,
-	INVALID_CASCADE,
+	MISSING_FACE_MODEL,
+	INVALID_FACE_MODEL,
 	FACE_NOT_FOUND,
 	MISSING_TEMPLATE,
 	INVALID_TEMPLATE,
@@ -25,18 +25,16 @@ const BODY_TEXTURE_PATHS: Array[String] = [
 	"res://assets/character_templates/success.png",
 	"res://assets/character_templates/failure.png",
 ]
-const PANEL_TEXTURE_PATHS: Array[String] = [
-	"res://assets/character_templates/default_hair.png",
-	"res://assets/character_templates/default_hair.png",
-	"res://assets/character_templates/default_hair.png",
-	"res://assets/character_templates/success_overlay.png",
-	"res://assets/character_templates/failure_overlay.png",
+const DECORATION_TEXTURE_PATHS: Array[String] = [
+	"res://assets/character_templates/decorations/hair.png",
+	"res://assets/character_templates/decorations/mustache.png",
+	"res://assets/character_templates/decorations/cheeks.png",
+	"res://assets/character_templates/decorations/failure_mark.png",
 ]
-# 正面顔検出用のカスケード分類器。
-# OpenCVの公式リポジトリから取得。
-# https://github.com/opencv/opencv/blob/master/data/haarcascades/haarcascade_frontalface_alt.xml
-const CASCADE_PATH: String = (
-	"res://assets/character_templates/haarcascade_frontalface_alt.xml"
+# 顔矩形と目・鼻・口角を同時に検出するYuNetモデル。
+const FACE_DETECTOR_MODEL_PATH: String = (
+	"res://assets/character_templates/models/"
+	+ "face_detection_yunet_2023mar.onnx"
 )
 
 # ヘッドレステストでは物理カメラと重い画像処理を起動しない。
@@ -195,7 +193,7 @@ func _configure_processor() -> bool:
 		return false
 
 	var body_images: Array[Image] = []
-	var panel_images: Array[Image] = []
+	var decoration_images: Array[Image] = []
 
 	for path: String in BODY_TEXTURE_PATHS:
 		var image := _load_texture_image(path)
@@ -203,21 +201,24 @@ func _configure_processor() -> bool:
 			return false
 		body_images.append(image)
 
-	for path: String in PANEL_TEXTURE_PATHS:
+	# 各素材を別々に渡し、C++側で検出顔を基準に位置と大きさを決める。
+	for path: String in DECORATION_TEXTURE_PATHS:
 		var image := _load_texture_image(path)
 		if image == null:
 			return false
-		panel_images.append(image)
+		decoration_images.append(image)
 
-	var cascade_xml := FileAccess.get_file_as_string(CASCADE_PATH)
-	if cascade_xml.is_empty():
+	var face_detector_model := FileAccess.get_file_as_bytes(
+		FACE_DETECTOR_MODEL_PATH
+	)
+	if face_detector_model.is_empty():
 		return false
 
 	return bool(processor.call(
 		"configure",
 		body_images,
-		panel_images,
-		cascade_xml
+		decoration_images,
+		face_detector_model
 	))
 
 
