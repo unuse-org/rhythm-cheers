@@ -7,6 +7,7 @@ extends FlowScreen
 @onready var now_label: Label = (
 	$ScreenLayout/Receipt/ReceiptMargin/ReceiptContent/NowLabel
 )
+@onready var player_count_label: Label = %PlayerCountLabel
 @onready var success_amount_label: Label = %SuccessAmountLabel
 @onready var failure_count_label: Label = %FailureCountLabel
 @onready var failure_amount_label: Label = %FailureAmountLabel
@@ -95,9 +96,21 @@ func update_now_label() -> void:
 		now.day,
 	]
 
+
+func update_player_count_label() -> void:
+	if run_context == null or run_context.player_number <= 0:
+		player_count_label.text = "No ---"
+		return
+
+	player_count_label.text = (
+		"No %03d" % run_context.player_number
+	)
+
+
 func update_result_display() -> void:
 	update_result_amounts()
 	update_now_label()
+	update_player_count_label()
 	update_result_face()
 
 
