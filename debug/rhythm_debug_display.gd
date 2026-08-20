@@ -12,7 +12,6 @@ extends Node2D
 const APPROACH_TIME: float = 2.0
 
 # デバッグノートの色
-const PREPARE_NOTE_COLOR: Color = Color.YELLOW
 const CHEERS_NOTE_COLOR: Color = Color.RED
 
 var rhythm_session: RhythmSession
@@ -71,7 +70,7 @@ func initialize_debug_input_events() -> void:
 	for chart_event: Dictionary in rhythm_session.chart:
 		var event_type: RhythmTypes.EventType = chart_event["type"]
 
-		if event_type == RhythmTypes.EventType.EXPECT_INPUT:
+		if event_type == RhythmTypes.EventType.EXPECT_CHEERS:
 			debug_input_events.append(chart_event)
 
 
@@ -86,7 +85,6 @@ func spawn_upcoming_debug_notes(song_time: float) -> void:
 		)
 
 		var beat: float = chart_event["beat"]
-		var input_type: RhythmTypes.InputType = chart_event["input_type"]
 		var note_time: float = rhythm_session.timing.beat_to_seconds(beat)
 
 		if song_time < note_time - APPROACH_TIME:
@@ -104,12 +102,7 @@ func spawn_upcoming_debug_notes(song_time: float) -> void:
 		# @onreadyを初期化させるため先にツリーへ追加する
 		debug_notes.add_child(note)
 
-		match input_type:
-			RhythmTypes.InputType.PREPARE:
-				note.set_debug_color(PREPARE_NOTE_COLOR)
-
-			RhythmTypes.InputType.CHEERS:
-				note.set_debug_color(CHEERS_NOTE_COLOR)
+		note.set_debug_color(CHEERS_NOTE_COLOR)
 
 		active_notes.append(note)
 		next_debug_note_index += 1

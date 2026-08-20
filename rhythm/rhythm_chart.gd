@@ -1,18 +1,13 @@
 class_name RhythmChart
 extends RefCounted
 
-# EXPECT_INPUT：入力を期待するイベント
+# PREPARE：乾杯の準備を開始するイベント
+# EXPECT_CHEERS：乾杯入力を期待するイベント
 # RETURN_NORMAL：キャラクターの状態をNORMALに戻すイベント
 const EVENT_TYPE_NAMES: Dictionary = {
-	"EXPECT_INPUT": RhythmTypes.EventType.EXPECT_INPUT,
+	"PREPARE": RhythmTypes.EventType.PREPARE,
+	"EXPECT_CHEERS": RhythmTypes.EventType.EXPECT_CHEERS,
 	"RETURN_NORMAL": RhythmTypes.EventType.RETURN_NORMAL,
-}
-
-# PREPARE：入力を準備するイベント
-# CHEERS：入力を受け付けるイベント
-const INPUT_TYPE_NAMES: Dictionary = {
-	"PREPARE": RhythmTypes.InputType.PREPARE,
-	"CHEERS": RhythmTypes.InputType.CHEERS,
 }
 
 var bpm: float
@@ -134,28 +129,6 @@ static func parse_event(
 		"beat": float(source["beat"]),
 		"type": event_type,
 	}
-
-	if event_type != RhythmTypes.EventType.EXPECT_INPUT:
-		return parsed_event
-
-	if typeof(source.get("input_type")) != TYPE_STRING:
-		report_error(
-			source_name,
-			"events[%d].input_typeは文字列にして" % index
-		)
-		return {}
-
-	var input_type_name: String = source["input_type"]
-
-	if not INPUT_TYPE_NAMES.has(input_type_name):
-		report_error(
-			source_name,
-			"なんやそのevents[%d].input_type: %s"
-			% [index, input_type_name]
-		)
-		return {}
-
-	parsed_event["input_type"] = INPUT_TYPE_NAMES[input_type_name]
 	return parsed_event
 
 

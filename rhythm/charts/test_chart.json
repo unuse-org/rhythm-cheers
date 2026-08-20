@@ -4,43 +4,51 @@
   "events": [
 	{
 	  "beat": 1.0,
-	  "type": "EXPECT_INPUT",
-	  "input_type": "PREPARE"
+	  "type": "PREPARE"
 	},
 	{
 	  "beat": 2.0,
-	  "type": "EXPECT_INPUT",
-	  "input_type": "CHEERS"
+	  "type": "EXPECT_CHEERS"
+	},
+	{
+	  "beat": 3.0,
+	  "type": "RETURN_NORMAL"
 	},
 	{
 	  "beat": 5.0,
-	  "type": "EXPECT_INPUT",
-	  "input_type": "PREPARE"
+	  "type": "PREPARE"
 	},
 	{
 	  "beat": 6.0,
-	  "type": "EXPECT_INPUT",
-	  "input_type": "CHEERS"
+	  "type": "EXPECT_CHEERS"
+	},
+	{
+	  "beat": 7.0,
+	  "type": "RETURN_NORMAL"
 	},
 	{
 	  "beat": 8.0,
-	  "type": "EXPECT_INPUT",
-	  "input_type": "PREPARE"
+	  "type": "PREPARE"
 	},
 	{
 	  "beat": 10.0,
-	  "type": "EXPECT_INPUT",
-	  "input_type": "CHEERS"
+	  "type": "EXPECT_CHEERS"
+	},
+	{
+	  "beat": 11.0,
+	  "type": "RETURN_NORMAL"
 	},
 	{
 	  "beat": 12.0,
-	  "type": "EXPECT_INPUT",
-	  "input_type": "PREPARE"
+	  "type": "PREPARE"
 	},
 	{
 	  "beat": 13.0,
-	  "type": "EXPECT_INPUT",
-	  "input_type": "CHEERS"
+	  "type": "EXPECT_CHEERS"
+	},
+	{
+	  "beat": 14.0,
+	  "type": "RETURN_NORMAL"
 	}
   ]
 }

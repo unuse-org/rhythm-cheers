@@ -1,0 +1,158 @@
+---
+id: screens
+title: 画面別の動作
+description: Title、FaceCapture、Tutorial、Main、Resultの現行動作
+sidebar_position: 3
+---
+
+## Title
+
+実装は `screens/title/title_screen.gd` と `title_screen.tscn` にある。
+
+| Property | 初期値 |
+| --- | --- |
+| `door_open_duration` | 1.0秒 |
+| `door_open_distance_ratio` | 0.5 |
+
+ActionButtonのpressedまたはCHEERS入力で `start_door_opening()` を呼ぶ。処理中は二重実行を拒否し、ActionButtonとLogoを非表示にする。DoorAudioPlayerにstreamがあれば再生する。
+
+Doorは画面幅 × `door_open_distance_ratio` だけ左へ、Quad / Ease In-Outで移動する。Tween完了後に `screen_completed({"door_opened": true})` をemitする。`door_open_duration <= 0` ではTweenを作らず直ちに完了する。
+
+シーンが参照している主なassetは次のとおり。
+
+- `assets/images/title_background.png`
+- `assets/images/door.png`
+- `assets/images/start.png`
+- `assets/images/logo.png`
+- `assets/images/goodwil.png`
+- `assets/audio/garagara.mp3`
+
+## FaceCapture
+
+実装は `screens/face_capture/face_capture_screen.gd` と `face_capture_screen.tscn` にある。
+
+### Phase
+
+| Phase | 状態 |
+| --- | --- |
+| `LIVE` | Previewを表示し、撮影入力を受け付ける |
+| `CAPTURING` | `capture_frame()` の結果待ち |
+| `SHUTTER` | 全画面ShutterPlayerを再生中 |
+| `REVIEW` | 撮影画像を表示し、再撮影入力と5秒Timerを受け付ける |
+| `PREPARING` | Review時間終了後も画像生成が継続している状態 |
+| `COMPLETED` | 次画面への完了Signalを送信済み |
+
+exportの初期値は `review_duration = 5.0`、`shutter_effect_enabled = true` である。
+
+### 初期化
+
+GUI実行では `WebCameraCaptureSource`、headless実行では `FakeCameraCaptureSource` を生成する。テストは `_ready()` より前に任意のCameraCaptureSourceとCharacterGenerationServiceを注入できる。
+
+CameraSourceの次のSignalを購読する。
+
+- `preview_ready`
+- `state_changed`
+- `capture_succeeded`
+- `capture_failed`
+
+CharacterGenerationServiceの次のSignalを購読する。
+
+- `generation_succeeded`
+- `generation_failed`
+
+### 撮影から完了まで
+
+```mermaid
+stateDiagram-v2
+    [*] --> LIVE
+    LIVE --> CAPTURING: CHEERS
+    CAPTURING --> SHUTTER: capture_succeeded
+    CAPTURING --> LIVE: capture_failed
+    SHUTTER --> REVIEW: 動画終了または動画無効
+    REVIEW --> LIVE: CHEERS
+    REVIEW --> PREPARING: 5秒経過・生成継続中
+    REVIEW --> COMPLETED: 5秒経過・生成終了済み
+    PREPARING --> COMPLETED: 生成終了
+    SHUTTER --> LIVE: 顔未検出結果
+    REVIEW --> LIVE: 顔未検出結果
+    PREPARING --> LIVE: 顔未検出結果
+```
+
+撮影成功時は取得Imageをduplicateして `RunContext.captured_face_image` へ保存する。同じImageをCharacterGenerationServiceへ渡し、返されたrequest IDを保持する。Previewは静止画のImageTextureへ差し替え、カメラを停止する。
+
+ShutterPlayerは画面直下にあり、`z_index = 100` で画面全体を覆う。`shutter01.ogv` と `shutter_chroma_key.gdshader` を使用する。撮影要求時にShutterAudioPlayerへstreamがあれば再生する。
+
+REVIEW開始直後の同一入力を再撮影に使わないよう、入力受付はdeferred callで有効になる。REVIEW中にCHEERSを受けると、Review世代番号を更新し、画像生成要求をcancelし、RunContextの撮影・生成データをnullへ戻してカメラを再起動する。
+
+5秒経過時に画像生成中ならPREPARINGへ移る。生成中でなければ `screen_completed({"capture_completed": true})` をemitする。
+
+### 画像生成結果
+
+最新request IDと一致する結果だけを処理する。
+
+| 結果 | RunContext | 画面動作 |
+| --- | --- | --- |
+| 成功 | ImageSetを保存し成功Flagを設定 | Countdown終了済みなら完了 |
+| `FACE_NOT_FOUND` | 生成データと撮影画像をclear | LIVEへ戻りカメラ再起動 |
+| その他の失敗 | 生成データをclear | Countdown終了済みなら固定素材のまま完了 |
+
+## Tutorial
+
+実装は `screens/tutorial/tutorial_screen.gd` と `tutorial_screen.tscn` にある。`RhythmSession` と `GameplayVisual` を1つずつ持つ。
+
+| Export | 初期値 |
+| --- | --- |
+| `chart_path` | `res://rhythm/charts/tutorial_chart.json` |
+| `required_success_count` | 3 |
+| `tutorial_end_beat` | 20.0 |
+| `intro_display_duration` | 2.5秒 |
+| `notice_display_duration` | 1.5秒 |
+| `clear_display_duration` | 1.0秒 |
+| `music_enabled` | true |
+
+シーンでは `tutorial_music` に `assets/audio/test_kanpai_bgm.mp3` が設定されている。
+
+譜面または音楽がnullの場合はprocessを止め、NoticeLabelへ初期化エラーを表示する。正常時はIntroOverlayを表示して音楽を止め、IntroTimer終了後に曲を先頭から再生する。
+
+成功数はTutorial内の `tutorial_success_count` にだけ記録される。`input_resolved` のjudgementが `PERFECT` または `GOOD` のとき、必要数まで加算する。
+
+再生位置が `tutorial_end_beat` の時刻へ到達するかAudioStreamPlayerのfinishedを受けると1回分を終了する。成功数が3未満の場合は先頭から再実行し、2回目以降は「もう一度練習しよう」をNoticeLabelへ表示する。3以上ならClearOverlayを表示し、1秒後に `screen_completed({"tutorial_completed": true})` をemitする。
+
+RunContextの生成成功Flagがtrueの場合、ImageSetをGameplayVisualへ渡す。falseの場合はシーンに設定された固定Textureを維持する。
+
+## Main
+
+実装は `main/main.gd` と `main/main.tscn` にある。ルートは `Node2D` で、`FlowScreen` は継承していない。
+
+| Export | 初期値 |
+| --- | --- |
+| `chart_path` | `res://rhythm/charts/test_chart.json` |
+| `start_delay_seconds` | 1.5秒 |
+
+シーンのMusicPlayerには `assets/audio/test_kanpai_bgm.mp3` が設定されている。
+
+`_ready()` ではprocessを停止し、譜面をloadしてRhythmSessionとGameplayVisualをconfigureする。RunContextの生成成功Flagがtrueなら、ImageSetをGameplayVisualへ渡す。RhythmDebugDisplayはsensor mode名 `SHARED` でconfigureされる。
+
+StartOverlayを表示したまま1.5秒待ち、`start_game()` でOverlayを隠し、processと音楽を同時に開始する。開始前または完了後の入力は無視する。
+
+毎frame、MusicPlayerの再生位置をRhythmSession、GameplayVisual、RhythmDebugDisplayへ渡す。音楽終了時はprocessと音楽を停止し、成功数・失敗数をPayloadへ入れて `screen_completed` をemitする。
+
+## Result
+
+実装は `screens/result/result_screen.gd` と `result_screen.tscn` にある。
+
+画面準備時にRunContextから次を表示する。
+
+| 表示 | 値 |
+| --- | --- |
+| 成功件数 | `cheers_success_count` |
+| 成功金額 | 成功件数 × ¥500 |
+| 失敗件数 | `cheers_failure_count` |
+| 失敗金額 | 失敗件数 × -¥50 |
+| 合計 | 成功金額 + 失敗金額 |
+| 累計人数 | `player_number`を3桁ゼロ埋めの「No NNN」として表示 |
+| キャラクター画像 | `generated_character_images.normal`から生成したImageTexture |
+
+RunContextがnullの場合、金額と件数は `--` になる。`player_number`が0以下の場合、累計番号は「No ---」になる。キャラクター生成が未成功、画像セットがnull、またはNORMAL画像が空の場合、FacePreviewを空にして「キャラクター画像なし」を表示する。撮影元の`captured_face_image`はResultには表示しない。
+
+`_ready()` で `assets/audio/result.mp3` が設定されていれば再生する。ActionButtonまたはCHEERS入力で空Payloadの完了Signalをemitし、AppがTitleへ遷移する。

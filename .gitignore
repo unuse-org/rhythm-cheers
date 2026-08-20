@@ -1,6 +1,13 @@
 # Godot 4+ specific ignores
 .godot/
 /android/
+.DS_Store
 
 # assets
 *.mp3
+*.mov
+*.ogv
+
+# ネイティブ拡張のローカルビルド生成物と私用テスト画像。
+/native/kanpai_image/build*/
+/native/kanpai_image/tests/fixtures/private/

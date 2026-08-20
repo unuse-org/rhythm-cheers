@@ -1,0 +1,81 @@
+[gd_scene format=3 uid="uid://dbw41b186wrqi"]
+
+[ext_resource type="Script" uid="uid://bu1ocvv1hjt8w" path="res://screens/title/title_screen.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://ce21xhqn3rjwf" path="res://assets/images/door.png" id="2_door"]
+[ext_resource type="Texture2D" uid="uid://b1jd61ljeua8x" path="res://assets/images/title_background.png" id="2_ucdjm"]
+[ext_resource type="Texture2D" uid="uid://k215bytis33p" path="res://assets/images/start.png" id="3_start"]
+[ext_resource type="Texture2D" uid="uid://b43ysp4ovklsr" path="res://assets/images/logo.png" id="5_xh3uk"]
+[ext_resource type="Texture2D" uid="uid://d3cwlxc28tqln" path="res://assets/images/goodwil.png" id="6_1k1ey"]
+[ext_resource type="AudioStream" uid="uid://c0t4j2q6egulm" path="res://assets/audio/garagara.mp3" id="7_garagara"]
+
+[node name="TitleScreen" type="Control" unique_id=697945681]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="Background" type="TextureRect" parent="." unique_id=15091810]
+layout_mode = 0
+offset_right = 718.0
+offset_bottom = 1285.0
+texture = ExtResource("2_ucdjm")
+expand_mode = 1
+
+[node name="Door" type="TextureRect" parent="." unique_id=514589402]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -3.0
+offset_bottom = 8.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_door")
+expand_mode = 1
+
+[node name="ActionButton" type="TextureButton" parent="." unique_id=1461216229]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = -1
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 64.0
+offset_top = -318.0
+offset_right = -84.28577
+offset_bottom = -226.0
+grow_vertical = 0
+mouse_default_cursor_shape = 2
+texture_normal = ExtResource("3_start")
+ignore_texture_size = true
+stretch_mode = 4
+
+[node name="Logo" type="TextureRect" parent="." unique_id=439239776]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 57.0
+offset_top = 536.0
+offset_right = 680.0
+offset_bottom = 806.0
+texture = ExtResource("5_xh3uk")
+expand_mode = 1
+stretch_mode = 4
+
+[node name="Goodwil" type="TextureRect" parent="." unique_id=30273834]
+layout_mode = 0
+offset_left = -513.0
+offset_top = -26.0
+offset_right = 1249.0
+offset_bottom = 415.0
+texture = ExtResource("6_1k1ey")
+expand_mode = 1
+stretch_mode = 4
+
+[node name="DoorAudioPlayer" type="AudioStreamPlayer" parent="." unique_id=2002027828]
+unique_name_in_owner = true
+stream = ExtResource("7_garagara")

@@ -1,0 +1,49 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "macos-arm64-debug",
+      "displayName": "macOS arm64 Debug",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/macos-arm64-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_OSX_ARCHITECTURES": "arm64",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "OpenCV_DIR": "/opt/homebrew/opt/opencv@4/lib/cmake/opencv4"
+      }
+    },
+    {
+      "name": "macos-arm64-release",
+      "displayName": "macOS arm64 Release",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/macos-arm64-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_OSX_ARCHITECTURES": "arm64",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "GODOTCPP_TARGET": "template_release",
+        "KANPAI_BUILD_CLI": "OFF",
+        "KANPAI_BUILD_TESTS": "OFF",
+        "OpenCV_DIR": "/opt/homebrew/opt/opencv@4/lib/cmake/opencv4"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "macos-arm64-debug",
+      "configurePreset": "macos-arm64-debug"
+    },
+    {
+      "name": "macos-arm64-release",
+      "configurePreset": "macos-arm64-release"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "macos-arm64-debug",
+      "configurePreset": "macos-arm64-debug",
+      "output": { "outputOnFailure": true }
+    }
+  ]
+}

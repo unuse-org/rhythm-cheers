@@ -1,0 +1,10 @@
+[configuration]
+
+entry_symbol = "kanpai_image_library_init"
+compatibility_minimum = "4.5"
+reloadable = true
+
+[libraries]
+
+macos.debug.arm64 = "res://addons/kanpai_image/bin/macos-arm64/libkanpai_image.macos.template_debug.arm64.dylib"
+macos.release.arm64 = "res://addons/kanpai_image/bin/macos-arm64/libkanpai_image.macos.template_release.arm64.dylib"

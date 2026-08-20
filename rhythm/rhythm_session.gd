@@ -1,7 +1,6 @@
 class_name RhythmSession
 extends Node
 
-signal judgement_changed(judgement: String)
 signal input_resolved(
 	beat: float,
 	input_type: RhythmTypes.InputType,
@@ -23,15 +22,17 @@ var next_event_index: int = 0
 
 # キャラクター状態
 var character_state: RhythmTypes.CharacterState = RhythmTypes.CharacterState.NORMAL
-var state_change_generation: int = 0
 
 # 入力判定
 var input_expected: bool = false
 var current_input_beat: float = 0.0
-var expected_input_type: RhythmTypes.InputType = RhythmTypes.InputType.PREPARE
 
 # 最後の判定結果
 var last_judgement: String = "-"
+
+# 1曲中の乾杯結果。入力確定時だけ更新し、途中入力は数えない。
+var cheers_success_count: int = 0
+var cheers_failure_count: int = 0
 
 # RhythmChartを読み込む
 func configure(new_chart: RhythmChart) -> void:
@@ -43,11 +44,11 @@ func configure(new_chart: RhythmChart) -> void:
 	# 初期化
 	next_event_index = 0
 	character_state = RhythmTypes.CharacterState.NORMAL
-	state_change_generation = 0
 	input_expected = false
 	current_input_beat = 0.0
-	expected_input_type = RhythmTypes.InputType.PREPARE
 	last_judgement = "-"
+	cheers_success_count = 0
+	cheers_failure_count = 0
 
 
 # 再生時刻までに発生した譜面イベントとMISSを処理する
@@ -60,16 +61,16 @@ func advance(song_time: float) -> void:
 func receive_input(
 	sensor_input_type: RhythmTypes.InputType,
 	song_time: float
-) -> void:
+) -> bool:
 	if not input_expected:
 		set_judgement("NO INPUT EXPECTED")
-		return
+		return false
 
-	if sensor_input_type != expected_input_type:
+	if sensor_input_type != RhythmTypes.InputType.CHEERS:
 		set_judgement("WRONG INPUT TYPE")
-		return
+		return false
 
-	judge_input_timing(song_time)
+	return judge_input_timing(song_time)
 
 
 # 譜面イベントを時刻に従って実行する
@@ -84,7 +85,7 @@ func process_chart_events(song_time: float) -> void:
 		var execution_time: float = event_time
 
 		# 判定時刻よりMISS_WINDOW秒前から入力受付を開始する
-		if event_type == RhythmTypes.EventType.EXPECT_INPUT:
+		if event_type == RhythmTypes.EventType.EXPECT_CHEERS:
 			execution_time -= MISS_WINDOW
 
 		if song_time < execution_time:
@@ -98,37 +99,36 @@ func process_chart_events(song_time: float) -> void:
 func execute_chart_event(chart_event: Dictionary) -> void:
 	var event_type: RhythmTypes.EventType = chart_event["type"]
 
-	# RhythmTypes.EventType.EXPECT_INPUT: 入力受付を開始する
+	# RhythmTypes.EventType.PREPARE: 乾杯の準備を開始する
+	# RhythmTypes.EventType.EXPECT_CHEERS: 乾杯入力の受付を開始する
 	# RhythmTypes.EventType.RETURN_NORMAL: キャラクター状態を通常に戻す
 	match event_type:
-		RhythmTypes.EventType.EXPECT_INPUT:
-			var event_beat: float = chart_event["beat"]
-			var input_type: RhythmTypes.InputType = chart_event["input_type"]
+		RhythmTypes.EventType.PREPARE:
+			input_expected = false
+			change_character_state(RhythmTypes.CharacterState.PREPARE)
 
-			start_input_window(event_beat, input_type)
+		RhythmTypes.EventType.EXPECT_CHEERS:
+			var event_beat: float = chart_event["beat"]
+			start_cheers_window(event_beat)
 
 		RhythmTypes.EventType.RETURN_NORMAL:
+			input_expected = false
 			change_character_state(RhythmTypes.CharacterState.NORMAL)
 
 
 # 入力受付を開始する
-func start_input_window(
-	event_beat: float,
-	input_type: RhythmTypes.InputType
-) -> void:
+func start_cheers_window(event_beat: float) -> void:
 	# 値を更新して入力受付状態にする
 	current_input_beat = event_beat
-	expected_input_type = input_type
 	input_expected = true
-
-	change_character_state(RhythmTypes.CharacterState.WAIT_INPUT)
+	change_character_state(RhythmTypes.CharacterState.JUDGING)
 
 
 # 入力タイミングを判定する
-func judge_input_timing(song_time: float) -> void:
+func judge_input_timing(song_time: float) -> bool:
 	if not input_expected:
 		set_judgement("NO INPUT EXPECTED")
-		return
+		return false
 
 	var target_time: float = timing.beat_to_seconds(current_input_beat)
 
@@ -138,9 +138,11 @@ func judge_input_timing(song_time: float) -> void:
 
 	if absolute_difference <= PERFECT_WINDOW:
 		complete_input("PERFECT")
+		return true
 
 	elif absolute_difference <= GOOD_WINDOW:
 		complete_input("GOOD")
+		return true
 
 	elif difference < -GOOD_WINDOW:
 		set_judgement("TOO EARLY")
@@ -148,24 +150,21 @@ func judge_input_timing(song_time: float) -> void:
 	else:
 		set_judgement("TOO LATE")
 
+	return false
+
 
 # 入力成功時の処理
 func complete_input(judgement: String) -> void:
 	set_judgement(judgement)
 	input_expected = false
+	# PERFECTとGOODはいずれも乾杯成功として集計する。
+	cheers_success_count += 1
+	change_character_state(RhythmTypes.CharacterState.SUCCESS)
 	input_resolved.emit(
 		current_input_beat,
-		expected_input_type,
+		RhythmTypes.InputType.CHEERS,
 		judgement
 	)
-
-	match expected_input_type:
-		RhythmTypes.InputType.PREPARE:
-			change_character_state(RhythmTypes.CharacterState.PREPARE)
-
-		RhythmTypes.InputType.CHEERS:
-			change_character_state(RhythmTypes.CharacterState.CHEERS)
-			return_to_normal_after_delay()
 
 
 # 入力されないまま判定可能時間を過ぎた場合
@@ -180,32 +179,19 @@ func process_missed_input(song_time: float) -> void:
 
 	var judgement: String = (
 		"MISS: %s"
-		% RhythmTypes.InputType.keys()[expected_input_type]
+		% RhythmTypes.InputType.keys()[RhythmTypes.InputType.CHEERS]
 	)
 
 	set_judgement(judgement)
 	input_expected = false
+	# 入力受付時間を過ぎた時点で、1回の失敗として確定する。
+	cheers_failure_count += 1
+	change_character_state(RhythmTypes.CharacterState.FAILURE)
 	input_resolved.emit(
 		current_input_beat,
-		expected_input_type,
+		RhythmTypes.InputType.CHEERS,
 		judgement
 	)
-
-	change_character_state(RhythmTypes.CharacterState.NORMAL)
-
-
-# 一定時間後に通常状態へ戻す
-func return_to_normal_after_delay() -> void:
-	var generation: int = state_change_generation
-
-	# 0.5秒待機する
-	await get_tree().create_timer(0.5).timeout
-
-	# 待機中に別の状態遷移が発生していたら戻さない
-	if generation != state_change_generation:
-		return
-
-	change_character_state(RhythmTypes.CharacterState.NORMAL)
 
 
 # キャラクター状態を変更する
@@ -214,7 +200,6 @@ func change_character_state(new_state: RhythmTypes.CharacterState) -> void:
 		return
 
 	character_state = new_state
-	state_change_generation += 1
 	character_state_changed.emit(character_state)
 
 	print(
@@ -226,8 +211,6 @@ func change_character_state(new_state: RhythmTypes.CharacterState) -> void:
 # 最後の判定結果を更新する
 func set_judgement(judgement: String) -> void:
 	last_judgement = judgement
-	# 判定更新のシグナルを発行する（まだ使ってない）
-	judgement_changed.emit(last_judgement)
 
 
 # 現在期待している入力タイプ名を返す
@@ -235,4 +218,4 @@ func get_expected_input_type_string() -> String:
 	if not input_expected:
 		return "-"
 
-	return RhythmTypes.InputType.keys()[expected_input_type]
+	return RhythmTypes.InputType.keys()[RhythmTypes.InputType.CHEERS]
