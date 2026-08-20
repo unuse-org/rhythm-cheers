@@ -4,8 +4,8 @@ extends SensorProvider
 var manager: GdSerialManager
 
 # ls /dev/cu.usbserial-* で確認すること
-var port_name: String = "/dev/cu.usbserial-B152356A38"
-var baud_rate: int = 115200
+@export var port_name: String = "/dev/cu.usbserial-B152356A38"
+@export var baud_rate: int = 115200
 
 # ============================================================
 # 判定閾値（起動時オートキャリブレーションで上書きされる）
