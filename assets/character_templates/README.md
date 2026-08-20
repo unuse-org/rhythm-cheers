@@ -16,5 +16,3 @@
 `models/face_detection_yunet_2023mar.onnx`は[OpenCV ZooのYuNet顔検出モデル](https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet)です。SHA-256は`8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4`です。モデルのMITライセンスは`models/YUNET_LICENSE.txt`を参照してください。
 
 OpenCVのライセンスは`native/kanpai_image/third_party_licenses/opencv.txt`を参照してください。
-
-身体・髪・表情素材は、このプロジェクトで制作した自作素材です。
