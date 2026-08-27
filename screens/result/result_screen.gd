@@ -1,8 +1,11 @@
 class_name ResultScreen
 extends FlowScreen
 
+@export var input_accept_delay: float = 5.0
+
 @onready var result_audio_player: AudioStreamPlayer = %ResultAudioPlayer
 @onready var action_button: Button = %ActionButton
+@onready var input_accept_timer: Timer = %InputAcceptTimer
 @onready var success_count_label: Label = %SuccessCountLabel
 @onready var now_label: Label = %NowLabel
 @onready var player_count_label: Label = %PlayerCountLabel
@@ -14,11 +17,16 @@ extends FlowScreen
 @onready var face_status_label: Label = %FaceStatusLabel
 @onready var music_player: AudioStreamPlayer = %MusicPlayer
 
+var input_enabled: bool = false
+
 
 func _ready() -> void:
 	action_button.pressed.connect(_on_action_button_pressed)
+	input_accept_timer.timeout.connect(_enable_input)
+	action_button.disabled = true
 	result_audio_player.finished.connect(_on_result_audio_finished)
 	update_result_display()
+	start_input_accept_delay()
 
 	# レシートが現れるタイミングに合わせ、会計の効果音を一度だけ鳴らす。
 	if result_audio_player.stream != null:
@@ -38,6 +46,7 @@ func play_music() -> void:
 
 
 func _exit_tree() -> void:
+	input_accept_timer.stop()
 	result_audio_player.stop()
 	result_audio_player.stream = null
 
@@ -55,8 +64,25 @@ func setup(context: RunContext) -> void:
 func receive_sensor_input(
 	sensor_input_type: RhythmTypes.InputType
 ) -> void:
-	if sensor_input_type == RhythmTypes.InputType.CHEERS:
+	if input_enabled and sensor_input_type == RhythmTypes.InputType.CHEERS:
 		complete_screen()
+
+
+# Result表示直後の乾杯入力を無視し、5秒後から画面遷移を受け付ける。
+func start_input_accept_delay() -> void:
+	input_enabled = false
+	action_button.disabled = true
+
+	if input_accept_delay <= 0.0:
+		_enable_input()
+		return
+
+	input_accept_timer.start(input_accept_delay)
+
+
+func _enable_input() -> void:
+	input_enabled = true
+	action_button.disabled = false
 
 
 func update_result_amounts() -> void:
@@ -134,4 +160,5 @@ func _format_amount(amount: int) -> String:
 
 
 func _on_action_button_pressed() -> void:
-	complete_screen()
+	if input_enabled:
+		complete_screen()

@@ -157,4 +157,6 @@ RunContextの生成成功Flagがtrueの場合、ImageSetをGameplayVisualへ渡�
 
 RunContextがnullの場合、金額と件数は `--` になる。`player_number`が0以下の場合、累計番号は「No ---」になる。キャラクター生成が未成功、画像セットがnull、またはNORMAL画像が空の場合、FacePreviewを空にして「キャラクター画像なし」を表示する。撮影元の`captured_face_image`はResultには表示しない。
 
-`_ready()` で `assets/audio/result.mp3` が設定されていれば再生し、その `finished` signalを受けてMusicPlayerのBGMを開始する。会計音が未設定の場合はBGMを直ちに開始する。ActionButtonまたはCHEERS入力で空Payloadの完了Signalをemitし、AppがTitleへ遷移する。
+`_ready()` で `assets/audio/result.mp3` が設定されていれば再生し、その `finished` signalを受けてMusicPlayerのBGMを開始する。会計音が未設定の場合はBGMを直ちに開始する。
+
+表示開始時はActionButtonを無効化し、CHEERS入力も無視する。`input_accept_delay` の初期値5秒が経過すると両方を有効化する。その後、ActionButtonまたはCHEERS入力で空Payloadの完了Signalをemitし、AppがTitleへ遷移する。
