@@ -108,7 +108,9 @@ func test_app_flow() -> void:
 		var target_time := tutorial.rhythm_session.timing.beat_to_seconds(
 			success_beat
 		)
-		var input_open_time := target_time - RhythmSession.MISS_WINDOW + 0.001
+		var input_open_time := (
+			target_time - RhythmSession.EARLY_SUCCESS_WINDOW + 0.001
+		)
 
 		tutorial.advance_tutorial(input_open_time)
 		tutorial.receive_sensor_input_at(

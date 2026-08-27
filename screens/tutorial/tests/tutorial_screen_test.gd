@@ -79,7 +79,7 @@ func test_tutorial_uses_full_track_and_clear_sequence() -> void:
 			SUCCESS_BEATS[expected_success_count - 1]
 		)
 		var input_open_time := (
-			target_time - RhythmSession.MISS_WINDOW + 0.001
+			target_time - RhythmSession.EARLY_SUCCESS_WINDOW + 0.001
 		)
 
 		tutorial.advance_tutorial(input_open_time)

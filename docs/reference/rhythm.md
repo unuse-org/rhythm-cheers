@@ -126,27 +126,30 @@ BaseMusicの長さが譜面終了時刻より0.1秒を超えて短い場合、Co
 | `cheers_success_count` | 成功確定数。初期値0 |
 | `cheers_failure_count` | MISS確定数。初期値0 |
 
-`EXPECT_CHEERS` は「杯」の対象時刻より `MISS_WINDOW` 秒前に入力受付を開始し、対象拍を `pending_inputs` へ追加する。受付開始時点ではPREPARE画像を維持し、対象時刻の `SHOW_CHEERS` でJUDGINGへ進む。対象時刻前に成功が確定した場合、`SHOW_CHEERS` はSUCCESS画像を上書きしない。
+`EXPECT_CHEERS` は「杯」の対象時刻より `EARLY_SUCCESS_WINDOW` 秒前に入力受付を開始し、対象拍を `pending_inputs` へ追加する。受付開始時点ではPREPARE画像を維持し、対象時刻の `SHOW_CHEERS` でJUDGINGへ進む。対象時刻前に成功が確定した場合、`SHOW_CHEERS` はSUCCESS画像を上書きしない。
 
-2連乾杯では2つの対象を順番に保持する。各対象には `SHOW_CHEERS` を通過したかを保持し、先の入力を解決した後も次の「杯」より前ならPREPAREを維持する。frameが複数eventをまたいだ場合は、次のeventを実行する前に期限を過ぎた対象を拍順にMISS確定する。
+2連乾杯では2つの対象を拍順に保持する。成功範囲が重なる場合は入力時刻に最も近い対象を選ぶ。後の対象を選んだ場合は、それより前の未入力をMISS確定してから選択対象を成功にする。各対象には `SHOW_CHEERS` を通過したかを保持し、先の入力を解決した後も次の「杯」より前ならPREPAREを維持する。frameが複数eventをまたいだ場合は、次のeventを実行する前に期限を過ぎた対象を拍順にMISS確定する。
 
 ## 判定窓
 
 | 定数 | 秒 |
 | --- | --- |
-| `PERFECT_WINDOW` | 0.05 |
-| `GOOD_WINDOW` | 0.10 |
-| `MISS_WINDOW` | 0.20 |
+| `PERFECT_WINDOW` | ±0.20 |
+| `EARLY_SUCCESS_WINDOW` | 0.20 |
+| `LATE_SUCCESS_WINDOW` | 0.30 |
+| `MISS_WINDOW` | 0.30（互換名） |
 
 目標時刻を `target`、入力時刻を `input` とすると、差は `input - target` で計算する。
 
 | 条件 | `last_judgement` | 入力対象 | 件数 |
 | --- | --- | --- | --- |
-| 絶対差 ≤ 0.05 | `PERFECT` | FIFO先頭を解決 | 成功 +1 |
-| 絶対差 ≤ 0.10 | `GOOD` | FIFO先頭を解決 | 成功 +1 |
-| 差 < -0.10 | `TOO EARLY` | 維持 | 変更なし |
-| 差 > 0.10 | `TOO LATE` | 維持 | 変更なし |
-| 時刻 ≥ target + 0.20 | `MISS: CHEERS` | FIFO先頭を解決 | 失敗 +1 |
+| `-0.20 ≤ 差 ≤ 0.20` | `PERFECT` | 最も近い対象を解決 | 成功 +1 |
+| `0.20 < 差 ≤ 0.30` | `GOOD` | 最も近い対象を解決 | 成功 +1 |
+| 差 < -0.20 | `TOO EARLY` | 維持 | 変更なし |
+| 差 > 0.30 | `TOO LATE` | 維持 | 変更なし |
+| 未入力のまま時刻 ≥ target + 0.30 | `MISS: CHEERS` | 対象を解決 | 失敗 +1 |
+
+CHEERS入力を受け取った処理内では、+0.30秒ちょうどの成功判定をMISS確定より先に行う。通常の時間進行で入力がない場合は、既存の譜面イベント順を維持するため+0.30秒到達時にMISSを確定する。
 
 入力待ちでないときの入力は `NO INPUT EXPECTED`、CHEERS以外の入力は `WRONG INPUT TYPE` を `last_judgement` に設定してfalseを返す。
 

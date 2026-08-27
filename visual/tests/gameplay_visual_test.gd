@@ -72,7 +72,9 @@ func test_character_follows_chart(chart: RhythmChart) -> void:
 	)
 
 	var cheers_time: float = session.timing.beat_to_seconds(2.0)
-	session.advance(cheers_time - RhythmSession.MISS_WINDOW + 0.001)
+	session.advance(
+		cheers_time - RhythmSession.EARLY_SUCCESS_WINDOW + 0.001
+	)
 	expect_equal(
 		session.character_state,
 		RhythmTypes.CharacterState.JUDGING,
@@ -111,7 +113,9 @@ func test_missed_cheers(chart: RhythmChart) -> void:
 	var cheers_time: float = session.timing.beat_to_seconds(2.0)
 
 	session.advance(prepare_time)
-	session.advance(cheers_time - RhythmSession.MISS_WINDOW + 0.001)
+	session.advance(
+		cheers_time - RhythmSession.EARLY_SUCCESS_WINDOW + 0.001
+	)
 	session.advance(cheers_time + RhythmSession.MISS_WINDOW + 0.001)
 
 	expect_equal(
@@ -550,7 +554,9 @@ func test_opponent_scroll_transitions(chart: RhythmChart) -> void:
 	var return_time := session.timing.beat_to_seconds(3.0)
 
 	session.advance(prepare_time)
-	session.advance(cheers_time - RhythmSession.MISS_WINDOW + 0.001)
+	session.advance(
+		cheers_time - RhythmSession.EARLY_SUCCESS_WINDOW + 0.001
+	)
 	session.receive_input(RhythmTypes.InputType.CHEERS, cheers_time)
 	session.advance(return_time)
 	visual.advance(return_time)
