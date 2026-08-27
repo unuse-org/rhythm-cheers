@@ -23,6 +23,7 @@ func test_main_waits_for_start_sequence() -> void:
 
 	var music_player := main.get_node("MusicPlayer") as AudioStreamPlayer
 	var rhythm_session := main.get_node("RhythmSession") as RhythmSession
+	var gameplay_visual := main.get_node("GameplayVisual") as GameplayVisual
 	var start_overlay := main.get_node("StartOverlay") as Control
 
 	expect_true(not main.get("is_game_started"), "開始表示中はゲームを止める")
@@ -35,6 +36,16 @@ func test_main_waits_for_start_sequence() -> void:
 		RhythmTypes.InputType.CHEERS
 	)
 	expect_equal(rhythm_session.last_judgement, "-", "開始前の入力を無視する")
+	expect_true(
+		gameplay_visual.player_cheers.visible,
+		"開始前でも入力フィードバックの手を表示する"
+	)
+	expect_true(
+		not gameplay_visual.cheers_effect.visible,
+		"開始前の入力では成功エフェクトを表示しない"
+	)
+	gameplay_visual.player_input_timer.stop()
+	gameplay_visual.player_input_timer.timeout.emit()
 
 	var gameplay_start_time: float = main.get("gameplay_start_time")
 	expect_true(gameplay_start_time > 0.0, "Chartからリードイン終了時刻を得る")

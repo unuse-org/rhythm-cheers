@@ -33,9 +33,9 @@ sidebar_position: 4
 
 ## SerialSensorProvider
 
-`sensor/serial_sensor_provider.gd` は `SensorProvider` を継承している。`start()` と `stop()` の本体はどちらも `pass` で、ポートopen、read、CHEERS検出は実装されていない。
+`sensor/serial_sensor_provider.gd` は `SensorProvider` を継承している。GdSerialManagerで指定ポートを開き、改行区切りJSONのx・y・z加速度を読み取る。起動後はCALIBRATINGで静止時の基準ベクトルと標準偏差を求め、IDLE中に乾杯方向への射影成分が閾値以上になると `input_detected(CHEERS)` をemitする。
 
-`addons/gdserial/gdserial.gdextension` はリポジトリに存在するが、`SerialSensorProvider` から呼ばれていない。
+CHEERS検出後は初期値0.15秒のCOOLDOWNへ入り、同じ動作による連続検出を抑制する。
 
 ## Providerの選択
 
@@ -50,6 +50,8 @@ Appは起動時に両Providerの `process_mode` をdisabledにし、選択した
 | Title | ドア開演出を開始する |
 | FaceCapture / LIVE | 静止画撮影を要求する |
 | FaceCapture / REVIEW | 再撮影へ戻る |
-| Tutorial | 現在の楽曲時刻で `RhythmSession.receive_input()` を呼ぶ |
-| Main | ゲーム開始済みの場合、現在の楽曲時刻で判定する |
-| Result | 画面を完了してTitleへ戻る |
+| Tutorial | GameplayVisualへ入力表示を要求し、現在の楽曲時刻で `RhythmSession.receive_input()` を呼ぶ |
+| Main | GameplayVisualへ常時入力表示を要求し、ゲーム開始済みの場合だけ現在の楽曲時刻で判定する |
+| Result | 表示開始5秒後から画面を完了してTitleへ戻る |
+
+TutorialとMainの入力表示は譜面判定から独立している。CHEERSを受け取ると判定窓外でも `my_hand.png` を0.3秒表示する。判定窓外の入力は成功・失敗件数を変更せず、成功時の衝突Effectも表示しない。

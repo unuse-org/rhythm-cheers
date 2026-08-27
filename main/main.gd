@@ -103,9 +103,15 @@ func advance_main(song_time: float) -> void:
 	rhythm_debug_display.advance(song_time)
 
 
-# Appが共有SensorProviderから転送した入力を判定へ渡す。
+# Appが共有SensorProviderから転送した入力を、表示と判定へ個別に渡す。
 func receive_sensor_input(sensor_input_type: RhythmTypes.InputType) -> void:
-	if not is_game_started or is_game_completed:
+	if is_game_completed:
+		return
+
+	# 手の表示は譜面と独立させ、リードイン中や判定窓外でも反応させる。
+	gameplay_visual.show_player_input(sensor_input_type)
+
+	if not is_game_started:
 		return
 
 	var song_time := get_song_time()

@@ -14,7 +14,7 @@ sidebar_position: 6
 | `World/Opponent0/Background` | 0 | 相手ごとに複製される背景 |
 | `World/Opponent0/Character` | 1 | 乾杯相手 |
 | `World/Opponent0/Table` | 2 | テーブル |
-| `PlayerCheers` | 3 | 成功時のユーザー側ジョッキ |
+| `PlayerCheers` | 3 | CHEERS入力時のユーザー側ジョッキ |
 | `CheersEffect` | 4 | 成功時の衝突Effect |
 | `CheersText` | 5 | 「乾」「杯」、成功、失敗表示 |
 
@@ -56,9 +56,15 @@ SUCCESSとFAILUREの専用Character Textureはexport propertyとして存在す�
 
 既に横スクロール用のOpponentが複製されている場合、全StationのCharacterへ新しいNORMAL Textureを設定する。現在Characterには現在Stateを再適用する。
 
+## 入力フィードバック
+
+`show_player_input(CHEERS)` を呼ぶと、譜面の受付状態や判定結果に関係なくPlayerCheersを表示する。表示時間は `player_input_display_duration` で、初期値は0.3秒である。表示中に再入力された場合はPlayerInputTimerを先頭から再開する。
+
+PlayerCheersは入力された事実だけを表す。CheersEffectはRhythmSessionのSUCCESS中だけ表示する。これにより、判定窓外の入力でも手は動くが、成功Effectや成功件数には影響しない。
+
 ## CharacterState別表示
 
-| State | Character | 文字 | PlayerCheers / Effect |
+| State | Character | 文字 | CheersEffect |
 | --- | --- | --- | --- |
 | `NORMAL` | NORMAL | すべて非表示 | 非表示 |
 | `PREPARE` | PREPARE | 「乾」 | 非表示 |
