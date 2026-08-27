@@ -34,20 +34,20 @@ sidebar_position: 5
 
 小節範囲は `start_measure <= measure < end_measure` で扱う。`create_section(name)` は全曲と同じ拍番号・BPMマップを維持する。`create_section(name, true)` は指定区間内のevent、Cue、BPM変更をローカルタイムラインへ変換し、そのSectionの音源パスを設定する。
 
-`lead_in_beats` が設定されたSectionでは、ローカル変換したevent、Cue、BPM変更を指定拍数だけ後ろへ移す。現在のMainは4拍、Tutorialは未指定のため0拍である。
+`lead_in_beats` が設定されたSectionでは、ローカル変換したevent、Cue、BPM変更を指定拍数だけ後ろへ移す。現在のMainは12拍、Tutorialは未指定のため0拍である。
 
 旧形式の `bpm`、`offset`、`events` を直接指定するJSONも読み込める。旧形式は先頭0拍のtempo change 1件へ変換される。
 
 ## 現在の全曲譜面
 
-offsetは各Section音源の先頭から0.64秒、拍子は4/4である。
+offsetは0秒、拍子は4/4である。各Section音源の先頭を0拍目として扱う。
 
 | Section | ベース音源 |
 | --- | --- |
 | Tutorial | `assets/audio/OffVocal_チュートリアル.mp3` |
 | Main | `assets/audio/OffVocal_本番.mp3` |
 
-Main Sectionの `lead_in_beats` は4である。本番音源は0秒から再生するが、最初のCueと譜面小節は4拍後から始まる。
+Main Sectionの `lead_in_beats` は12である。本番音源は全曲タイムラインの13小節目から始まり、最初のCueと16小節目の譜面は12拍後から始まる。Mainローカル時刻では最初の「ワン」が5.143秒、「乾」が6.000秒、「杯」と判定対象が6.429秒である。
 
 | 小節範囲 | Section | BPM |
 | --- | --- | --- |
@@ -58,7 +58,7 @@ Main Sectionの `lead_in_beats` は4である。本番音源は0秒から再生�
 | 45以上53未満 | Main | 140 |
 | 53以上61未満 | Main | 150 |
 
-2連乾杯は20、26、27、38、44、48、56小節目である。60小節目は入力と掛け声のないアウトロで、61小節目の先頭を曲終了境界とする。
+2連乾杯は20、26、27、38、44、48、56小節目である。60小節目は通常乾杯で、61小節目の先頭を曲終了境界とする。現在 `no_input_measures` は空である。
 
 ### 小節から生成するevent
 
@@ -105,9 +105,11 @@ beat = segment_start_beat
 
 `RhythmAudioController` はApp直下にあり、OffVocal用の `BaseMusicPlayer` と掛け声用の `CuePlayerA`、`CuePlayerB` を所有する。Tutorial表示時はTutorialのローカルChartと音源、Main表示時はMainのローカルChartと音源へ再設定される。
 
-Controllerは再生位置へ `AudioServer.get_time_since_last_mix()` を加え、`AudioServer.get_output_latency()` を引いた値を曲時刻として返す。frame更新がCue時刻より遅れた場合は遅れた秒数を再生開始offsetへ渡す。遅れが音源尺以上の場合は実音声を再生せず、Cueを処理済みにする。
+Controllerは画面表示・入力判定用の曲時刻として、再生位置へ `AudioServer.get_time_since_last_mix()` を加え、`AudioServer.get_output_latency()` を引いた値を返す。Cueの開始判定には出力Latencyを引かないMix時刻を使い、新しいCueがBaseMusicと同じ出力Latencyを通った時点で揃うようにする。frame更新がCue時刻より遅れた場合は遅れた秒数を再生開始offsetへ渡す。遅れが音源尺以上の場合は実音声を再生せず、Cueを処理済みにする。
 
-ローカルChartには対象SectionのCueだけが含まれる。Main内のCue、event、BPM変更拍はSection先頭からの相対拍へ変換した後、4拍のリードイン分だけ後ろへ移される。
+BaseMusicの長さが譜面終了時刻より0.1秒を超えて短い場合、Controllerは不足秒数をwarningへ出す。現在のTutorial音源は譜面より約13.714秒短いため、このwarningの対象である。
+
+ローカルChartには対象SectionのCueだけが含まれる。Main内のCue、event、BPM変更拍はSection先頭からの相対拍へ変換した後、12拍のリードイン分だけ後ろへ移される。
 
 ## RhythmSessionの状態
 
@@ -164,8 +166,8 @@ input_resolved(
 
 Tutorialは1小節目から16小節目直前までを使用する。成功数が3未満ならTutorial音源を0秒へ戻して同区間を再実行する。成功時はClearOverlayを表示して待機せず、Mainへ遷移する。
 
-Mainは画面生成直後に本番音源を0秒から再生し、4拍の間はStartOverlayを表示する。入力、RhythmSession、GameplayVisual、RhythmDebugDisplayはリードイン終了時刻まで進めない。4拍目でOverlayを隠し、最初の掛け声Cueとゲーム進行を開始する。
+Mainは画面生成直後に本番音源を0秒から再生し、12拍の間はStartOverlayを表示する。入力、RhythmSession、GameplayVisual、RhythmDebugDisplayはリードイン終了時刻まで進めない。12拍目でOverlayを隠し、最初の掛け声Cueとゲーム進行を開始する。
 
-音源の再生終了時にControllerを停止し、成功数と失敗数をAppへ返す。60小節目には入力と掛け声がないため、音源末尾の余韻中は新しい判定が発生しない。
+音源の再生終了時にControllerを停止し、成功数と失敗数をAppへ返す。最後の判定対象は60小節目の通常乾杯である。
 
 TutorialまたはMainを単独実行してControllerが注入されていない場合は、各シーン内のMusicPlayerを代替として使用する。

@@ -101,7 +101,7 @@ godot --headless --path . --script path/to/test.gd
 | `camera/tests/camera_capture_source_test.gd` | Fake撮影、format選択 |
 | `image_processing/tests/character_generation_service_test.gd` | cancel、pending、古い結果の破棄 |
 | `image_processing/tests/kanpai_image_extension_test.gd` | ClassDB登録、configure、空入力、任意の実画像生成 |
-| `main/tests/main_start_test.gd` | 音源先行再生、4拍リードイン、開始Overlay、入力抑止 |
+| `main/tests/main_start_test.gd` | 音源先行再生、12拍リードイン、開始Overlay、入力抑止 |
 | `rhythm/tests/rhythm_audio_controller_test.gd` | 画面別音源、Cue時刻、遅延offset |
 | `rhythm/tests/rhythm_chart_test.gd` | 小節譜面の展開、ローカルSection、2連乾杯、旧形式互換 |
 | `rhythm/tests/rhythm_session_test.gd` | 2連乾杯の成功、MISS、frame skip |

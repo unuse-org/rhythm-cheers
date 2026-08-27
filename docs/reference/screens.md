@@ -133,11 +133,11 @@ RunContextの生成成功Flagがtrueの場合、ImageSetをGameplayVisualへ渡�
 
 シーンのMusicPlayerには単独実行時の代替音源として `assets/audio/OffVocal_本番.mp3` が設定されている。
 
-`_ready()` ではprocessを停止し、全曲譜面から `main` Sectionをローカルタイムラインで作成する。16小節目以上61小節目未満のevent、Cue、BPM変更へ4拍を加え、Sectionの終了拍を184拍にする。RhythmSessionとGameplayVisualをconfigureし、RunContextの生成成功FlagがtrueならImageSetをGameplayVisualへ渡す。RhythmDebugDisplayはsensor mode名 `SHARED` でconfigureされる。
+`_ready()` ではprocessを停止し、全曲譜面から `main` Sectionをローカルタイムラインで作成する。16小節目以上61小節目未満のevent、Cue、BPM変更へ12拍を加え、Sectionの終了拍を192拍にする。RhythmSessionとGameplayVisualをconfigureし、RunContextの生成成功FlagがtrueならImageSetをGameplayVisualへ渡す。RhythmDebugDisplayはsensor mode名 `SHARED` でconfigureされる。
 
 通常フローではMain用に再設定されたRhythmAudioController、単独実行ではMusicPlayerを使用する。どちらもStartOverlayを表示したまま本番音源を0秒から開始する。リードイン終了時刻は `RhythmTiming.beat_to_seconds(chart.lead_in_beats)` で求める。
 
-リードイン中の入力は無視し、曲時刻が4拍目へ到達するとStartOverlayを隠して入力受付を有効にする。そのframeからControllerまたはMusicPlayerの曲時刻をRhythmSession、GameplayVisual、RhythmDebugDisplayへ渡す。本番音源の再生終了時にprocessと音楽を停止し、成功数・失敗数をPayloadへ入れて `screen_completed` をemitする。
+リードイン中の入力は無視し、曲時刻が12拍目へ到達するとStartOverlayを隠して入力受付を有効にする。そのframeからControllerまたはMusicPlayerの曲時刻をRhythmSession、GameplayVisual、RhythmDebugDisplayへ渡す。本番音源の再生終了時にprocessと音楽を停止し、成功数・失敗数をPayloadへ入れて `screen_completed` をemitする。
 
 ## Result
 

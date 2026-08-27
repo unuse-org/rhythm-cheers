@@ -1,5 +1,9 @@
 extends SceneTree
 
+const PRODUCTION_CHART_PATH: String = (
+	"res://rhythm/charts/kanpai_chart.json"
+)
+
 var failures: Array[String] = []
 
 
@@ -12,8 +16,8 @@ func run_tests() -> void:
 	expect_true(chart != null, "小節譜面を読み込む")
 	if chart != null:
 		expect_equal(chart.tempo_changes.size(), 5, "BPM変更数")
-		expect_equal(chart.events.size(), 257, "乾・杯表示を含む全イベント数")
-		expect_equal(chart.cues.size(), 170, "通常と2連のCue数")
+		expect_equal(chart.events.size(), 261, "乾・杯表示を含む全イベント数")
+		expect_equal(chart.cues.size(), 173, "通常と2連のCue数")
 		expect_equal(chart.get_section_start_beat("main"), 60.0, "本編開始拍")
 		expect_equal(chart.get_section_end_beat("tutorial"), 60.0, "Tutorial終了拍")
 
@@ -21,15 +25,29 @@ func run_tests() -> void:
 		var main := chart.create_section("main")
 		var local_main := chart.create_section("main", true)
 		expect_equal(tutorial.events.size(), 60, "Tutorialは15小節")
-		expect_equal(main.events.size(), 197, "Main区間のイベント数")
-		expect_equal(local_main.lead_in_beats, 4.0, "Mainは4拍リードイン")
-		expect_equal(local_main.events[0]["beat"], 6.0, "リードイン後の乾")
-		expect_equal(local_main.cues[0]["beat"], 4.0, "4拍後にChartを開始")
-		expect_equal(local_main.end_beat, 184.0, "Mainはリードインと45小節分")
+		expect_equal(main.events.size(), 201, "Main区間のイベント数")
+		expect_equal(local_main.lead_in_beats, 12.0, "Mainは12拍リードイン")
+		expect_equal(local_main.events[0]["beat"], 14.0, "リードイン後の乾")
+		expect_equal(local_main.cues[0]["beat"], 12.0, "12拍後にChartを開始")
+		expect_equal(local_main.end_beat, 192.0, "Mainはリードインと45小節分")
 		expect_equal(
-			local_main.tempo_changes[1]["beat"],
-			72.0,
-			"33小節目のBPM変更をMainローカル拍へ移す"
+			get_tempo_change_beats(local_main),
+			[0.0, 80.0, 96.0, 128.0, 160.0],
+			"BPM変更をDAWのMainローカル拍へ移す"
+		)
+		var local_main_timing := RhythmTiming.new(
+			local_main.tempo_changes,
+			local_main.offset
+		)
+		expect_near(
+			local_main_timing.beat_to_seconds(12.0),
+			5.142857,
+			"本番最初のワンをDAW時刻へ合わせる"
+		)
+		expect_near(
+			local_main_timing.beat_to_seconds(15.0),
+			6.428571,
+			"本番最初の杯をDAW時刻へ合わせる"
 		)
 		expect_equal(
 			local_main.audio_path,
@@ -38,7 +56,7 @@ func run_tests() -> void:
 		)
 		expect_equal(count_expect_events(chart, 20), 2, "20小節は2連乾杯")
 		expect_equal(count_expect_events(chart, 33), 1, "33小節は通常乾杯")
-		expect_equal(count_expect_events(chart, 60), 0, "60小節はアウトロ")
+		expect_equal(count_expect_events(chart, 60), 1, "60小節も通常乾杯")
 		expect_equal(
 			get_event_beats(chart, 16, RhythmTypes.EventType.PREPARE),
 			[62.0],
@@ -60,12 +78,65 @@ func run_tests() -> void:
 			"2連は各杯を判定拍にする"
 		)
 		expect_equal(
+			get_event_beats(
+				local_main,
+				20,
+				RhythmTypes.EventType.EXPECT_CHEERS
+			),
+			[30.5, 31.5],
+			"2連乾杯をDAWのMainローカル拍へ移す"
+		)
+		expect_equal(
+			get_event_beats(
+				local_main,
+				60,
+				RhythmTypes.EventType.EXPECT_CHEERS
+			),
+			[191.0],
+			"60小節目の杯をDAWのMainローカル拍へ移す"
+		)
+		expect_equal(
 			count_opponent_starts(chart),
-			59,
+			60,
 			"2連でも1小節につき相手は1人"
 		)
 		expect_equal(get_cue_bpm(chart, 38), 130.0, "38小節はBPM130素材")
 		expect_equal(get_cue_bpm(chart, 56), 150.0, "56小節はBPM150素材")
+
+	var production_chart := RhythmChart.load_from_file(PRODUCTION_CHART_PATH)
+	expect_true(production_chart != null, "実譜面を読み込む")
+	if production_chart != null:
+		var production_main := production_chart.create_section("main", true)
+		expect_equal(production_chart.offset, 0.0, "実譜面はDAWと同じ0秒開始")
+		expect_equal(production_main.lead_in_beats, 12.0, "実譜面は12拍リードイン")
+		expect_equal(
+			get_tempo_change_beats(production_main),
+			[0.0, 80.0, 96.0, 128.0, 160.0],
+			"実譜面のBPM変更位置をDAWへ合わせる"
+		)
+		expect_equal(
+			get_event_beats(
+				production_main,
+				16,
+				RhythmTypes.EventType.EXPECT_CHEERS
+			),
+			[15.0],
+			"実譜面の最初の杯をDAWの15拍目へ合わせる"
+		)
+		expect_equal(
+			get_event_beats(
+				production_main,
+				20,
+				RhythmTypes.EventType.EXPECT_CHEERS
+			),
+			[30.5, 31.5],
+			"実譜面の2連乾杯をDAWへ合わせる"
+		)
+		expect_equal(
+			count_expect_events(production_chart, 60),
+			1,
+			"実譜面に60小節目の乾杯を含める"
+		)
 
 	var legacy := RhythmChart.from_dictionary({
 		"bpm": 120.0,
@@ -93,7 +164,7 @@ func create_chart_source() -> Dictionary:
 			"tutorial": "res://tutorial.mp3",
 			"main": "res://main.mp3",
 		},
-		"offset": 0.64,
+		"offset": 0.0,
 		"beats_per_measure": 4,
 		"end_measure": 61,
 		"sections": {
@@ -101,7 +172,7 @@ func create_chart_source() -> Dictionary:
 			"main": {
 				"start_measure": 16,
 				"end_measure": 61,
-				"lead_in_beats": 4,
+				"lead_in_beats": 12,
 			},
 		},
 		"tempo_changes": [
@@ -113,7 +184,7 @@ func create_chart_source() -> Dictionary:
 		],
 		"default_pattern": "NORMAL",
 		"double_cheers_measures": [20, 26, 27, 38, 44, 48, 56],
-		"no_input_measures": [60],
+		"no_input_measures": [],
 		"cue_sets": cue_sets,
 	}
 
@@ -134,6 +205,13 @@ func get_cue_bpm(chart: RhythmChart, measure: int) -> float:
 		if int(cue["measure"]) == measure:
 			return float(cue["bpm"])
 	return 0.0
+
+
+func get_tempo_change_beats(chart: RhythmChart) -> Array[float]:
+	var beats: Array[float] = []
+	for change: Dictionary in chart.tempo_changes:
+		beats.append(float(change["beat"]))
+	return beats
 
 
 func get_event_beats(
@@ -170,6 +248,13 @@ func expect_true(condition: bool, message: String) -> void:
 func expect_equal(actual: Variant, expected: Variant, message: String) -> void:
 	if actual != expected:
 		failures.append("%s: expected=%s actual=%s" % [message, expected, actual])
+
+
+func expect_near(actual: float, expected: float, message: String) -> void:
+	if absf(actual - expected) > 0.001:
+		failures.append(
+			"%s: expected=%.6f actual=%.6f" % [message, expected, actual]
+		)
 
 
 func finish_tests() -> void:

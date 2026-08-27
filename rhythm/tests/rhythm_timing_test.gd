@@ -17,15 +17,15 @@ func run_tests() -> void:
 			{"beat": 176.0, "bpm": 140.0},
 			{"beat": 208.0, "bpm": 150.0},
 		],
-		0.64
+		0.0
 	)
-	expect_near(timing.beat_to_seconds(0.0), 0.64, "1小節目")
-	expect_near(timing.beat_to_seconds(60.0), 26.3542857, "16小節目")
-	expect_near(timing.beat_to_seconds(128.0), 55.4971429, "33小節目")
-	expect_near(timing.beat_to_seconds(144.0), 63.4971429, "37小節目")
-	expect_near(timing.beat_to_seconds(176.0), 78.2663736, "45小節目")
-	expect_near(timing.beat_to_seconds(208.0), 91.9806593, "53小節目")
-	expect_near(timing.beat_to_seconds(240.0), 104.7806593, "曲終了")
+	expect_near(timing.beat_to_seconds(0.0), 0.0, "1小節目")
+	expect_near(timing.beat_to_seconds(60.0), 25.7142857, "16小節目")
+	expect_near(timing.beat_to_seconds(128.0), 54.8571429, "33小節目")
+	expect_near(timing.beat_to_seconds(144.0), 62.8571429, "37小節目")
+	expect_near(timing.beat_to_seconds(176.0), 77.6263736, "45小節目")
+	expect_near(timing.beat_to_seconds(208.0), 91.3406593, "53小節目")
+	expect_near(timing.beat_to_seconds(240.0), 104.1406593, "曲終了")
 
 	for beat: float in [0.0, 60.0, 127.5, 128.0, 143.5, 144.0, 240.0]:
 		expect_near(
