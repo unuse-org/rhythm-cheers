@@ -10,13 +10,15 @@ signal screen_completed(payload: Dictionary)
 @onready var start_overlay: Control = %StartOverlay
 
 @export_file("*.json") var chart_path: String = (
-	"res://rhythm/charts/test_chart.json"
+	"res://rhythm/charts/kanpai_chart.json"
 )
-@export_range(0.0, 5.0, 0.1) var start_delay_seconds: float = 1.5
 
 var run_context: RunContext
+var audio_controller: RhythmAudioController
+var chart: RhythmChart
+var gameplay_start_time: float = 0.0
 
-# 開始演出中の入力と譜面進行を止めるための状態。
+# 本番音源のリードイン中はfalseにして、センサー入力を受け付けない。
 var is_game_started: bool = false
 # finishedの重複通知やテスト操作で結果を複数回送らないためのフラグ。
 var is_game_completed: bool = false
@@ -27,20 +29,35 @@ func setup(context: RunContext) -> void:
 	run_context = context
 
 
-func _ready() -> void:
-	# シーン生成直後は停止し、開始演出後にstart_game()から有効化する。
-	set_process(false)
-	music_player.finished.connect(_on_music_finished)
+func set_audio_controller(controller: RhythmAudioController) -> void:
+	audio_controller = controller
 
-	var chart := RhythmChart.load_from_file(chart_path)
+
+func _ready() -> void:
+	# 初期化完了後、音源のリードインからprocessを開始する。
+	set_process(false)
+	if audio_controller == null:
+		music_player.finished.connect(_on_music_finished)
+
+	var full_chart := RhythmChart.load_from_file(chart_path)
+	chart = (
+		full_chart.create_section("main", true)
+		if full_chart != null and full_chart.sections.has("main")
+		else full_chart
+	)
 
 	if chart == null:
 		# _processを無効化
 		set_process(false)
 		return
+	if audio_controller != null:
+		audio_controller.song_finished.connect(_on_music_finished)
 
 	# チャートの読み込み
 	rhythm_session.configure(chart)
+	gameplay_start_time = rhythm_session.timing.beat_to_seconds(
+		chart.lead_in_beats
+	)
 	# ゲーム画面の初期化
 	gameplay_visual.configure(rhythm_session)
 	if (
@@ -60,13 +77,26 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
-	# 遷移後に音声再生とストリーム参照を残さない。
+	# App所有の共通Playerはfinish_game()で停止する。
 	music_player.stop()
 	music_player.stream = null
 
 
 func _process(_delta: float) -> void:
-	var song_time: float = music_player.get_playback_position()
+	advance_main(get_song_time())
+
+
+# リードイン中は音源だけを進め、規定拍に達したframeから譜面を進める。
+func advance_main(song_time: float) -> void:
+	if chart == null or is_game_completed:
+		return
+	if audio_controller != null and not audio_controller.playback_enabled:
+		audio_controller.set_simulated_song_time(song_time)
+
+	if not is_game_started:
+		if song_time < gameplay_start_time:
+			return
+		start_game()
 
 	rhythm_session.advance(song_time)
 	gameplay_visual.advance(song_time)
@@ -78,38 +108,39 @@ func receive_sensor_input(sensor_input_type: RhythmTypes.InputType) -> void:
 	if not is_game_started or is_game_completed:
 		return
 
-	var song_time: float = music_player.get_playback_position()
+	var song_time := get_song_time()
 	rhythm_session.receive_input(
 		sensor_input_type,
 		song_time
 	)
 
 
-# 「本番スタート！」を表示し、一定時間後にゲームを開始する。
+func get_song_time() -> float:
+	if audio_controller != null:
+		return audio_controller.get_song_time()
+	return music_player.get_playback_position()
+
+
+# 「本番スタート！」を表示したまま、本番音源のリードインを再生する。
 func begin_start_sequence() -> void:
 	start_overlay.visible = true
+	set_process(true)
+	if audio_controller != null:
+		audio_controller.start(0.0)
+	else:
+		music_player.play(0.0)
 
-	if start_delay_seconds <= 0.0:
+	if gameplay_start_time <= 0.0:
 		start_game()
-		return
-
-	# 一定時間後にstart_game()を呼び出す。
-	# 1.5秒後にゲームを開始する。
-	get_tree().create_timer(start_delay_seconds).timeout.connect(
-		start_game,
-		CONNECT_ONE_SHOT
-	)
 
 
-# 音楽・譜面進行・入力受付を同じタイミングで開始する。
+# リードイン終了時に表示を消し、譜面進行と入力受付を有効にする。
 func start_game() -> void:
 	if is_game_started or is_game_completed:
 		return
 
 	is_game_started = true
 	start_overlay.visible = false
-	set_process(true)
-	music_player.play(0.0)
 
 
 # 曲終了時点の集計値をAppへ返し、リザルト遷移を要求する。
@@ -120,6 +151,8 @@ func finish_game() -> void:
 	is_game_completed = true
 	set_process(false)
 	music_player.stop()
+	if audio_controller != null:
+		audio_controller.stop()
 	# RhythmSessionの集計値をAppへ返す。
 	screen_completed.emit(
 		{

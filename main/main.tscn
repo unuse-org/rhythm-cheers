@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://bxmxkl8qoibnh" path="res://main/main.gd" id="1_3wy1v"]
 [ext_resource type="PackedScene" uid="uid://bcvh1q12nfrkm" path="res://debug/debug_note.tscn" id="2_kfbq2"]
-[ext_resource type="AudioStream" uid="uid://ce6ofcmq51idr" path="res://assets/audio/test_kanpai_bgm.mp3" id="3_4dugh"]
+[ext_resource type="AudioStream" uid="uid://ca5mwhuh3kclm" path="res://assets/audio/OffVocal_本番.mp3" id="3_4dugh"]
 [ext_resource type="Script" uid="uid://bk5um3l1445uq" path="res://rhythm/rhythm_session.gd" id="6_session"]
 [ext_resource type="Script" uid="uid://ckcyllbfub7vd" path="res://debug/rhythm_debug_display.gd" id="7_debug_display"]
 [ext_resource type="PackedScene" uid="uid://cc0imib80ift1" path="res://visual/gameplay_visual.tscn" id="8_gameplay_visual"]
@@ -22,6 +22,7 @@ script = ExtResource("6_session")
 z_index = 100
 script = ExtResource("7_debug_display")
 debug_note_scene = ExtResource("2_kfbq2")
+show_debug_notes = false
 
 [node name="JudgeLine" type="ColorRect" parent="RhythmDebugDisplay" unique_id=1249278990]
 offset_right = 6.0

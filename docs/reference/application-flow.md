@@ -12,10 +12,11 @@ sidebar_position: 2
 | Node | 型・Script | 用途 |
 | --- | --- | --- |
 | `ScreenContainer` | `Node` | 現在画面を1つ配置する |
+| `RhythmAudioController` | `RhythmAudioController` | 画面別OffVocal、掛け声Cue、曲時刻を管理する |
 | `KeyboardSensorProvider` | `KeyboardSensorProvider` | Space入力をCHEERSへ変換する |
 | `SerialSensorProvider` | `SerialSensorProvider` | 現在は空実装 |
 
-`RhythmCheersApp._ready()` は `RunContext` を生成し、Titleを表示した後、選択されたSensorProviderを開始する。
+`RhythmCheersApp._ready()` は `RunContext` と `rhythm/charts/kanpai_chart.json` を読み込む。その後、Titleを表示して選択されたSensorProviderを開始する。
 
 ## 画面IDとシーン
 
@@ -38,9 +39,10 @@ sidebar_position: 2
 3. `SceneFlow.get_scene_path()` でシーンパスを取得する。
 4. `PackedScene` をloadしてinstantiateする。
 5. 画面が `setup` を持つ場合、現在の `RunContext` を渡す。
-6. 画面が `screen_completed` Signalを持つ場合、Appの `_on_screen_completed` へ接続する。
-7. `ScreenContainer` へ追加する。
-8. deferred callで `transition_locked` を解除する。
+6. TutorialまたはMainの場合、対象Sectionをローカルタイムラインへ変換し、Section固有のリードイン拍を加えてから専用音源とともにRhythmAudioControllerへ設定する。画面が `set_audio_controller` を持つ場合はControllerを渡す。
+7. 画面が `screen_completed` Signalを持つ場合、Appの `_on_screen_completed` へ接続する。
+8. `ScreenContainer` へ追加する。
+9. deferred callで `transition_locked` を解除する。
 
 シーンloadに失敗した場合はエラーを出し、遷移ロックを解除して終了する。
 
@@ -111,7 +113,7 @@ total_count=1
 | `calculate_failure_amount()` | 失敗数 × -50 |
 | `calculate_total_amount()` | 成功金額 + 失敗金額 |
 
-ResultからTitleへ戻るとき、Appは既存Contextへ `clear()` を呼び、その後で新しい `RunContext` を生成する。
+ResultからTitleへ戻るとき、AppはRhythmAudioControllerを停止する。続けて既存Contextへ `clear()` を呼び、その後で新しい `RunContext` を生成する。
 
 ## 入力配送
 

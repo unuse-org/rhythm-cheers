@@ -8,6 +8,9 @@ enum SensorMode {
 }
 
 @onready var screen_container: Node = $ScreenContainer
+@onready var rhythm_audio_controller: RhythmAudioController = (
+	$RhythmAudioController
+)
 @onready var keyboard_sensor_provider: SensorProvider = (
 	$KeyboardSensorProvider
 )
@@ -16,6 +19,9 @@ enum SensorMode {
 )
 
 @export var sensor_mode: SensorMode = SensorMode.KEYBOARD
+@export_file("*.json") var song_chart_path: String = (
+	"res://rhythm/charts/kanpai_chart.json"
+)
 
 # Appが現在表示している画面と、1プレイ分の共有データを保持する。
 var active_sensor_provider: SensorProvider
@@ -24,6 +30,8 @@ var current_screen: Node
 var run_context: RunContext
 # テストでは保存先を汚さないFakeへ差し替えられる。
 var player_count_store: PlayerCountStore
+var rhythm_audio_ready: bool = false
+var song_chart: RhythmChart
 
 # 同じ乾杯入力で複数画面進まないよう、差し替え中は入力を止める。
 var transition_locked: bool = false
@@ -34,6 +42,10 @@ func _ready() -> void:
 	run_context = RunContext.new()
 	if player_count_store == null:
 		player_count_store = PlayerCountStore.new()
+	song_chart = RhythmChart.load_from_file(song_chart_path)
+	rhythm_audio_ready = song_chart != null
+	if not rhythm_audio_ready:
+		push_error("全曲譜面を初期化できませんでした。")
 	show_screen(SceneFlow.get_initial_screen())
 	initialize_sensor_provider()
 
@@ -63,12 +75,15 @@ func show_screen(screen_id: SceneFlow.ScreenId) -> void:
 
 	current_screen = packed_scene.instantiate()
 	current_screen_id = screen_id
+	var screen_audio_ready := configure_rhythm_audio_for_screen(screen_id)
 
 	# 各画面は必要なメソッドとシグナルだけを共通契約として実装する。
 	# MainはFlowScreenを継承しないため、継承型ではなく存在確認で扱う。
 	# 画面の初期化は、RunContextを引数にsetup()で行う。
 	if current_screen.has_method("setup"):
 		current_screen.call("setup", run_context)
+	if screen_audio_ready and current_screen.has_method("set_audio_controller"):
+		current_screen.call("set_audio_controller", rhythm_audio_controller)
 
 	# 画面が完了したらAppへ通知するため、シグナルを接続する。
 	if current_screen.has_signal("screen_completed"):
@@ -78,6 +93,31 @@ func show_screen(screen_id: SceneFlow.ScreenId) -> void:
 	screen_container.add_child(current_screen)
 	# 新しい画面へ遷移元の入力が届かないよう、次の処理単位で解除する。
 	call_deferred("_unlock_transition")
+
+
+# TutorialとMainでは、それぞれのローカル譜面と専用音源へ切り替える。
+func configure_rhythm_audio_for_screen(
+	screen_id: SceneFlow.ScreenId
+) -> bool:
+	if not rhythm_audio_ready:
+		return false
+
+	var section_name := ""
+	match screen_id:
+		SceneFlow.ScreenId.TUTORIAL:
+			section_name = "tutorial"
+		SceneFlow.ScreenId.MAIN:
+			section_name = "main"
+		_:
+			return false
+
+	var section_chart := song_chart.create_section(section_name, true)
+	if section_chart == null:
+		return false
+	if not rhythm_audio_controller.configure(section_chart):
+		push_error("%s音声を初期化できませんでした。" % section_name)
+		return false
+	return true
 
 
 # 選択したSensorProviderだけを起動し、入力をAppへ集約する。
@@ -135,6 +175,7 @@ func _on_screen_completed(payload: Dictionary) -> void:
 
 	# RESULTからTITLEへ戻る時点で前回プレイの画像・結果を破棄する。
 	if next_screen_id == SceneFlow.ScreenId.TITLE:
+		rhythm_audio_controller.stop()
 		run_context.clear()
 		run_context = RunContext.new()
 

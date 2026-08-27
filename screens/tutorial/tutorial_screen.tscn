@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://cknq20sbhcji"]
 
 [ext_resource type="Script" uid="uid://b7w0jecy5cjd0" path="res://screens/tutorial/tutorial_screen.gd" id="1_script"]
-[ext_resource type="AudioStream" uid="uid://ce6ofcmq51idr" path="res://assets/audio/test_kanpai_bgm.mp3" id="2_music"]
+[ext_resource type="AudioStream" path="res://assets/audio/OffVocal_チュートリアル.mp3" id="2_music"]
 [ext_resource type="Script" uid="uid://bk5um3l1445uq" path="res://rhythm/rhythm_session.gd" id="3_session"]
 [ext_resource type="PackedScene" uid="uid://cc0imib80ift1" path="res://visual/gameplay_visual.tscn" id="4_visual"]
 

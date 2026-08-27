@@ -38,10 +38,14 @@ func run_tests() -> void:
 func test_app_flow() -> void:
 	var app_scene := load(APP_SCENE_PATH) as PackedScene
 	var app := app_scene.instantiate() as RhythmCheersApp
+	# 実機用Sceneの既定値に依存せず、テスト入力を直接送れるProviderを使う。
+	app.sensor_mode = RhythmCheersApp.SensorMode.KEYBOARD
 	var player_count_store := FakePlayerCountStore.new()
 	app.player_count_store = player_count_store
 	root.add_child(app)
 	await process_frame
+	# 共通音楽は疑似時刻で進め、実音声と実時間へ依存させない。
+	app.rhythm_audio_controller.playback_enabled = false
 
 	# 1周目: TITLEからMAINまで、共有センサーで順番に進む。
 	expect_equal(
@@ -98,7 +102,7 @@ func test_app_flow() -> void:
 	tutorial.start_tutorial_track()
 
 	# 一曲内で3回成功させ、曲の区切りからMAINへ進む。
-	var tutorial_success_beats: Array[float] = [2.0, 6.0, 10.0]
+	var tutorial_success_beats: Array[float] = [3.0, 7.0, 11.0]
 
 	for success_beat: float in tutorial_success_beats:
 		var target_time := tutorial.rhythm_session.timing.beat_to_seconds(
@@ -132,24 +136,36 @@ func test_app_flow() -> void:
 	var rhythm_session := main_screen.get_node(
 		"RhythmSession"
 	) as RhythmSession
-	var main_music_player := main_screen.get_node(
-		"MusicPlayer"
-	) as AudioStreamPlayer
-
-	# Mainは開始表示中に音楽・入力を開始しない。
+	# Tutorial完了後は本番音源を開始し、リードイン中は開始表示を維持する。
 	expect_true(
 		not main_screen.get("is_game_started"),
-		"開始表示中はゲームを停止する"
+		"Main遷移直後はゲーム入力を開始しない"
 	)
-	expect_true(not main_music_player.playing, "開始表示中は音楽を再生しない")
-	app.active_sensor_provider.input_detected.emit(
-		RhythmTypes.InputType.CHEERS
+	expect_true(
+		app.rhythm_audio_controller.running,
+		"Main専用音源を開始する"
 	)
-	expect_equal(rhythm_session.last_judgement, "-", "開始前の入力を無視する")
-
-	main_screen.call("start_game")
-	expect_true(main_screen.get("is_game_started"), "開始表示後にゲームを始める")
-	expect_true(main_music_player.playing, "ゲーム開始と同時に音楽を再生する")
+	expect_true(
+		app.rhythm_audio_controller.chart.audio_path.ends_with(
+			"OffVocal_本番.mp3"
+		),
+		"Main用Controllerへ本番音源を設定する"
+	)
+	expect_true(
+		(main_screen.get_node("StartOverlay") as Control).visible,
+		"リードイン中は本番スタートを表示する"
+	)
+	var gameplay_start_time: float = main_screen.get("gameplay_start_time")
+	main_screen.call("advance_main", gameplay_start_time - 0.001)
+	expect_true(
+		not main_screen.get("is_game_started"),
+		"規定拍より前は入力を開始しない"
+	)
+	main_screen.call("advance_main", gameplay_start_time)
+	expect_true(
+		main_screen.get("is_game_started"),
+		"規定拍でMainのゲーム進行を開始する"
+	)
 	rhythm_session.cheers_success_count = 3
 	rhythm_session.cheers_failure_count = 1
 	var result_character_image := Image.create(
@@ -194,6 +210,16 @@ func test_app_flow() -> void:
 	expect_true(
 		result_screen.result_audio_player.playing,
 		"レシート表示時に会計の効果音を再生する"
+	)
+	expect_true(
+		not result_screen.music_player.playing,
+		"会計の効果音が鳴っている間はリザルトBGMを再生しない"
+	)
+	result_screen.result_audio_player.stop()
+	result_screen.result_audio_player.finished.emit()
+	expect_true(
+		result_screen.music_player.playing,
+		"会計の効果音が終了した後にリザルトBGMを再生する"
 	)
 	expect_equal(
 		result_screen.success_count_label.text,

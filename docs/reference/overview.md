@@ -6,7 +6,7 @@ slug: /
 sidebar_position: 1
 ---
 
-このReferenceは、2026-08-16時点の作業ツリーに存在する実装を記録する。計画、改善案、未実装機能の設計は含めない。
+このReferenceは、2026-08-26時点の作業ツリーに存在する実装を記録する。計画、改善案、未実装機能の設計は含めない。
 
 ## プロジェクト設定
 
@@ -29,8 +29,10 @@ flowchart LR
     App --> Screen[表示中の画面]
     App <--> Context[RunContext]
     App --> CountStore[PlayerCountStore]
+    App --> Audio[RhythmAudioController]
     CountStore --> CountFile[user://player_count.cfg]
     Screen --> Rhythm[RhythmSession]
+    Audio --> Screen
     Rhythm --> Visual[GameplayVisual]
     Screen --> Camera[CameraCaptureSource]
     Screen --> Service[CharacterGenerationService]
@@ -53,6 +55,8 @@ flowchart LR
 | `CharacterGenerationService` | `image_processing/character_generation_service.gd` | 画像生成要求、素材読込、非同期要求管理 |
 | `KanpaiImageProcessor` | `native/kanpai_image/src/gdextension/` | Godot ImageとC++コアの変換、worker管理 |
 | `RhythmChart` | `rhythm/rhythm_chart.gd` | JSON譜面の読込と検証 |
+| `RhythmTiming` | `rhythm/rhythm_timing.gd` | 可変BPMの拍と秒の相互変換 |
+| `RhythmAudioController` | `rhythm/rhythm_audio_controller.gd` | 画面別OffVocal、掛け声Cue、現在画面の曲時刻 |
 | `RhythmSession` | `rhythm/rhythm_session.gd` | 譜面イベント実行と入力判定 |
 | `GameplayVisual` | `visual/gameplay_visual.gd` | キャラクター状態、文字演出、横スクロールの表示 |
 

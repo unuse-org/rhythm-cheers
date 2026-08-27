@@ -23,6 +23,7 @@ enum Phase {
 @onready var status_label: Label = %StatusLabel
 @onready var action_button: Button = %ActionButton
 @onready var retry_button: Button = %RetryButton
+@onready var music_player: AudioStreamPlayer = %MusicPlayer
 
 var camera_source: CameraCaptureSource
 var generation_service: CharacterGenerationService
@@ -54,6 +55,9 @@ func _ready() -> void:
 		_on_character_generation_failed
 	)
 
+	if music_player.stream != null:
+		music_player.play()
+
 	_show_capture_message(false)
 	_attach_camera_source()
 	_update_shutter_aspect()
@@ -67,6 +71,8 @@ func _exit_tree() -> void:
 	shutter_audio_player.stop()
 	shutter_audio_player.stream = null
 	shutter_player.stop()
+	music_player.stream = null
+	music_player.stop()
 
 	if camera_source != null:
 		camera_source.stop()
@@ -131,6 +137,7 @@ func _handle_cheers_input() -> void:
 
 
 func _request_capture() -> void:
+	shutter_audio_player.volume_db = 20.0
 	if is_completed or capture_in_progress or camera_source == null:
 		return
 

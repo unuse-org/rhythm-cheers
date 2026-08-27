@@ -3,7 +3,7 @@ extends SceneTree
 const TUTORIAL_SCENE_PATH: String = (
 	"res://screens/tutorial/tutorial_screen.tscn"
 )
-const SUCCESS_BEATS: Array[float] = [2.0, 6.0, 10.0]
+const SUCCESS_BEATS: Array[float] = [3.0, 7.0, 11.0]
 
 var failures: Array[String] = []
 var completion_count: int = 0

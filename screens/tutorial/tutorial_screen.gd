@@ -15,7 +15,7 @@ extends FlowScreen
 @export_category("Tutorial Resources")
 @export var tutorial_music: AudioStream
 @export_file("*.json") var chart_path: String = (
-	"res://rhythm/charts/tutorial_chart.json"
+	"res://rhythm/charts/kanpai_chart.json"
 )
 
 @export_category("Tutorial Progress")
@@ -23,7 +23,7 @@ extends FlowScreen
 @export_range(3.0, 64.0, 0.5) var tutorial_end_beat: float = 20.0
 @export_range(0.0, 10.0, 0.1) var intro_display_duration: float = 2.5
 @export_range(0.0, 5.0, 0.1) var notice_display_duration: float = 1.5
-@export_range(0.0, 5.0, 0.1) var clear_display_duration: float = 1.0
+@export_range(0.0, 5.0, 0.1) var clear_display_duration: float = 0.0
 
 # 自動テストでは実時間の再生を止め、曲時刻を直接進める。
 @export var music_enabled: bool = true
@@ -34,26 +34,39 @@ var tutorial_run_count: int = 0
 var chart: RhythmChart
 var track_finished: bool = false
 var clear_sequence_started: bool = false
+var audio_controller: RhythmAudioController
+
+
+func set_audio_controller(controller: RhythmAudioController) -> void:
+	audio_controller = controller
 
 
 func _ready() -> void:
 	music_player.stream = tutorial_music
-	chart = RhythmChart.load_from_file(chart_path)
+	var full_chart := RhythmChart.load_from_file(chart_path)
+	chart = (
+		full_chart.create_section("tutorial", true)
+		if full_chart != null and full_chart.sections.has("tutorial")
+		else full_chart
+	)
 
 	if chart == null:
 		set_process(false)
 		show_initialization_error("チュートリアル譜面を読み込めません")
 		return
 
-	if tutorial_music == null:
+	if audio_controller == null and tutorial_music == null:
 		set_process(false)
 		show_initialization_error("チュートリアル音楽が設定されていません")
 		return
-
 	rhythm_session.input_resolved.connect(_on_input_resolved)
-	music_player.finished.connect(_on_music_finished)
+	if audio_controller != null:
+		audio_controller.song_finished.connect(_on_music_finished)
+	else:
+		music_player.finished.connect(_on_music_finished)
 	intro_timer.timeout.connect(_on_intro_timer_timeout)
 	notice_timer.timeout.connect(hide_notice)
+	tutorial_end_beat = chart.get_section_end_beat("tutorial")
 
 	if music_enabled and intro_display_duration > 0.0:
 		# 案内表示中も編集時の表示状態を残さず、人物を通常状態に整える。
@@ -66,7 +79,7 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
-	# 次の画面へ音声再生とストリーム参照を残さない。
+	# 次画面ではAppがControllerをMain用音源へ再設定する。
 	music_player.stop()
 	music_player.stream = null
 	intro_timer.stop()
@@ -74,7 +87,7 @@ func _exit_tree() -> void:
 
 
 func _process(_delta: float) -> void:
-	advance_tutorial(music_player.get_playback_position())
+	advance_tutorial(get_song_time())
 
 
 func receive_sensor_input(
@@ -82,8 +95,14 @@ func receive_sensor_input(
 ) -> void:
 	receive_sensor_input_at(
 		sensor_input_type,
-		music_player.get_playback_position()
+		get_song_time()
 	)
+
+
+func get_song_time() -> float:
+	if audio_controller != null:
+		return audio_controller.get_song_time()
+	return music_player.get_playback_position()
 
 
 # 曲を止めたまま遊び方を提示し、合図を読む準備時間を作る。
@@ -94,6 +113,8 @@ func show_tutorial_intro() -> void:
 	clear_overlay.visible = false
 	hide_notice()
 	music_player.stop()
+	if audio_controller != null:
+		audio_controller.stop()
 
 	intro_timer.wait_time = intro_display_duration
 	intro_timer.start()
@@ -104,7 +125,7 @@ func _on_intro_timer_timeout() -> void:
 	start_tutorial_track()
 
 
-# 専用曲と譜面を先頭へ戻し、チュートリアル全体を開始する。
+# 専用曲とローカル譜面を先頭へ戻し、チュートリアル全体を開始する。
 func start_tutorial_track() -> void:
 	intro_timer.stop()
 	track_finished = false
@@ -124,7 +145,9 @@ func start_tutorial_track() -> void:
 
 	music_player.stop()
 
-	if music_enabled:
+	if audio_controller != null and music_enabled:
+		audio_controller.start(0.0)
+	elif music_enabled:
 		music_player.play(0.0)
 
 
@@ -145,6 +168,8 @@ func _apply_generated_character_images() -> void:
 func advance_tutorial(song_time: float) -> void:
 	if chart == null or track_finished or is_completed:
 		return
+	if audio_controller != null and not audio_controller.playback_enabled:
+		audio_controller.set_simulated_song_time(song_time)
 
 	rhythm_session.advance(song_time)
 	gameplay_visual.advance(song_time)
@@ -174,7 +199,8 @@ func finish_tutorial_track() -> void:
 		return
 
 	track_finished = true
-	music_player.stop()
+	if audio_controller == null:
+		music_player.stop()
 
 	if tutorial_success_count >= required_success_count:
 		start_clear_sequence()
@@ -184,7 +210,7 @@ func finish_tutorial_track() -> void:
 	start_tutorial_track()
 
 
-# クリア表示を挟み、チュートリアルとメインが直結して見えないようにする。
+# 完了を即時通知し、Main側の音声リードインへ表示を引き継ぐ。
 func start_clear_sequence() -> void:
 	if clear_sequence_started:
 		return
@@ -207,7 +233,8 @@ func start_clear_sequence() -> void:
 
 func complete_tutorial() -> void:
 	set_process(false)
-	music_player.stop()
+	if audio_controller == null:
+		music_player.stop()
 	complete_screen({"tutorial_completed": true})
 
 
