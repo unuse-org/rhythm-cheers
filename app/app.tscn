@@ -7,7 +7,6 @@
 
 [node name="App" type="Node" unique_id=1233642994]
 script = ExtResource("1_app")
-sensor_mode = 1
 
 [node name="ScreenContainer" type="Node" parent="." unique_id=1773246021]
 
