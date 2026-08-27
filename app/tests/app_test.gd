@@ -230,7 +230,7 @@ func test_app_flow() -> void:
 	)
 	expect_equal(
 		result_screen.success_amount_label.text,
-		"¥1500",
+		"1500円",
 		"リザルト画面に乾杯金額を表示する"
 	)
 	expect_equal(
@@ -240,12 +240,12 @@ func test_app_flow() -> void:
 	)
 	expect_equal(
 		result_screen.failure_amount_label.text,
-		"¥-50",
+		"-50円",
 		"リザルト画面に失杯金額を表示する"
 	)
 	expect_equal(
 		result_screen.total_amount_label.text,
-		"¥1450",
+		"1450円",
 		"リザルト画面に合計金額を表示する"
 	)
 	expect_equal(
@@ -263,6 +263,9 @@ func test_app_flow() -> void:
 		"撮影画像ではなくNORMAL生成画像を利用する"
 	)
 
+	# 実時間を待たず、Resultの5秒入力待機完了を再現する。
+	result_screen.input_accept_timer.stop()
+	result_screen.input_accept_timer.timeout.emit()
 	app.active_sensor_provider.input_detected.emit(
 		RhythmTypes.InputType.CHEERS
 	)

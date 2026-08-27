@@ -88,10 +88,10 @@ func _enable_input() -> void:
 func update_result_amounts() -> void:
 	if run_context == null:
 		success_count_label.text = "--"
-		success_amount_label.text = "¥--"
+		success_amount_label.text = "--円"
 		failure_count_label.text = "--"
-		failure_amount_label.text = "¥--"
-		total_amount_label.text = "¥--"
+		failure_amount_label.text = "--円"
+		total_amount_label.text = "--円"
 		return
 
 	success_count_label.text = str(run_context.cheers_success_count)
@@ -156,7 +156,7 @@ func update_result_display() -> void:
 
 
 func _format_amount(amount: int) -> String:
-	return "¥%d" % amount
+	return "%d円" % amount
 
 
 func _on_action_button_pressed() -> void:

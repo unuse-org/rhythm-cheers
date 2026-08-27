@@ -6,6 +6,10 @@
 [ext_resource type="AudioStream" uid="uid://derptdxxd3kec" path="res://assets/audio/OPBGM.mp3" id="3_nwasq"]
 [ext_resource type="Shader" uid="uid://dvv1uykahxuw4" path="res://screens/result/grayscale.gdshader" id="4_bc4b1"]
 [ext_resource type="AudioStream" uid="uid://ba3ivf3jhtcvb" path="res://assets/audio/result.mp3" id="4_result_audio"]
+[ext_resource type="FontFile" uid="uid://cm5anjxbnkhws" path="res://assets/fonts/レシートフォント.ttf" id="6_receipt_font"]
+
+[sub_resource type="Theme" id="Theme_receipt"]
+default_font = ExtResource("6_receipt_font")
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_receipt"]
 bg_color = Color(0.8784314, 0.8666667, 0.8745098, 1)
@@ -72,6 +76,7 @@ alignment = 1
 custom_minimum_size = Vector2(486, 905)
 layout_mode = 2
 size_flags_horizontal = 4
+theme = SubResource("Theme_receipt")
 theme_override_styles/panel = SubResource("StyleBox_receipt")
 
 [node name="ReceiptMargin" type="MarginContainer" parent="ScreenLayout/Receipt" unique_id=1953461777]
@@ -146,7 +151,7 @@ alignment = 1
 layout_mode = 2
 theme_override_colors/font_color = Color(0, 0, 0, 1)
 theme_override_font_sizes/font_size = 34
-text = "¥500 ×"
+text = "500円×"
 
 [node name="SuccessCountLabel" type="Label" parent="ScreenLayout/Receipt/ReceiptMargin/ReceiptContent/SuccessRow" unique_id=864050400]
 unique_name_in_owner = true
@@ -169,7 +174,7 @@ custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0, 0, 0, 1)
 theme_override_font_sizes/font_size = 34
-text = "¥--"
+text = "--円"
 horizontal_alignment = 2
 
 [node name="FailureTitle" type="Label" parent="ScreenLayout/Receipt/ReceiptMargin/ReceiptContent" unique_id=1398941947]
@@ -187,7 +192,7 @@ alignment = 1
 layout_mode = 2
 theme_override_colors/font_color = Color(0, 0, 0, 1)
 theme_override_font_sizes/font_size = 34
-text = "¥-50 ×"
+text = "-50円×"
 
 [node name="FailureCountLabel" type="Label" parent="ScreenLayout/Receipt/ReceiptMargin/ReceiptContent/FailureRow" unique_id=1601501895]
 unique_name_in_owner = true
@@ -210,7 +215,7 @@ custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0, 0, 0, 1)
 theme_override_font_sizes/font_size = 34
-text = "¥--"
+text = "--円"
 horizontal_alignment = 2
 
 [node name="ResultSpacer" type="Control" parent="ScreenLayout/Receipt/ReceiptMargin/ReceiptContent" unique_id=1565247963]
@@ -238,7 +243,7 @@ custom_minimum_size = Vector2(220, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0, 0, 0, 1)
 theme_override_font_sizes/font_size = 46
-text = "¥--"
+text = "--"
 horizontal_alignment = 2
 vertical_alignment = 1
 
