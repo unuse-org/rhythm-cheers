@@ -102,21 +102,24 @@ REVIEW開始直後の同一入力を再撮影に使わないよう、入力受�
 
 | Export | 初期値 |
 | --- | --- |
-| `chart_path` | `res://rhythm/charts/tutorial_chart.json` |
+| `chart_path` | `res://rhythm/charts/kanpai_chart.json` |
 | `required_success_count` | 3 |
-| `tutorial_end_beat` | 20.0 |
 | `intro_display_duration` | 2.5秒 |
 | `notice_display_duration` | 1.5秒 |
-| `clear_display_duration` | 1.0秒 |
+| `clear_display_duration` | 0.0秒 |
 | `music_enabled` | true |
 
-シーンでは `tutorial_music` に `assets/audio/test_kanpai_bgm.mp3` が設定されている。
+シーンでは代替用の `tutorial_music` に `assets/audio/OffVocal_チュートリアル.mp3` が設定されている。
 
-譜面または音楽がnullの場合はprocessを止め、NoticeLabelへ初期化エラーを表示する。正常時はIntroOverlayを表示して音楽を止め、IntroTimer終了後に曲を先頭から再生する。
+全曲譜面から `tutorial` Sectionをローカルタイムラインで作成し、1小節目以上16小節目未満のeventを0拍以上60拍未満へ変換してRhythmSessionへ設定する。終了拍は60拍目である。
+
+AppからRhythmAudioControllerが渡された通常フローでは、IntroTimer終了後にTutorial専用音源を0秒から開始する。Controllerがない単独実行ではシーン内のMusicPlayerを使用する。譜面、または代替再生時の音楽がnullの場合はprocessを止め、NoticeLabelへ初期化エラーを表示する。
 
 成功数はTutorial内の `tutorial_success_count` にだけ記録される。`input_resolved` のjudgementが `PERFECT` または `GOOD` のとき、必要数まで加算する。
 
-再生位置が `tutorial_end_beat` の時刻へ到達するかAudioStreamPlayerのfinishedを受けると1回分を終了する。成功数が3未満の場合は先頭から再実行し、2回目以降は「もう一度練習しよう」をNoticeLabelへ表示する。3以上ならClearOverlayを表示し、1秒後に `screen_completed({"tutorial_completed": true})` をemitする。
+再生位置が60拍目へ到達すると1回分を終了する。成功数が3未満の場合はControllerまたはMusicPlayerを先頭へ戻して再実行し、2回目以降は「もう一度練習しよう」をNoticeLabelへ表示する。
+
+成功数が3以上の場合はClearOverlayを表示する。現在の `clear_display_duration` は0秒なので、同じ処理内で `screen_completed({"tutorial_completed": true})` をemitする。その後、AppがMain用音源へ切り替える。
 
 RunContextの生成成功Flagがtrueの場合、ImageSetをGameplayVisualへ渡す。falseの場合はシーンに設定された固定Textureを維持する。
 
@@ -126,16 +129,15 @@ RunContextの生成成功Flagがtrueの場合、ImageSetをGameplayVisualへ渡�
 
 | Export | 初期値 |
 | --- | --- |
-| `chart_path` | `res://rhythm/charts/test_chart.json` |
-| `start_delay_seconds` | 1.5秒 |
+| `chart_path` | `res://rhythm/charts/kanpai_chart.json` |
 
-シーンのMusicPlayerには `assets/audio/test_kanpai_bgm.mp3` が設定されている。
+シーンのMusicPlayerには単独実行時の代替音源として `assets/audio/OffVocal_本番.mp3` が設定されている。
 
-`_ready()` ではprocessを停止し、譜面をloadしてRhythmSessionとGameplayVisualをconfigureする。RunContextの生成成功Flagがtrueなら、ImageSetをGameplayVisualへ渡す。RhythmDebugDisplayはsensor mode名 `SHARED` でconfigureされる。
+`_ready()` ではprocessを停止し、全曲譜面から `main` Sectionをローカルタイムラインで作成する。16小節目以上61小節目未満のevent、Cue、BPM変更へ4拍を加え、Sectionの終了拍を184拍にする。RhythmSessionとGameplayVisualをconfigureし、RunContextの生成成功FlagがtrueならImageSetをGameplayVisualへ渡す。RhythmDebugDisplayはsensor mode名 `SHARED` でconfigureされる。
 
-StartOverlayを表示したまま1.5秒待ち、`start_game()` でOverlayを隠し、processと音楽を同時に開始する。開始前または完了後の入力は無視する。
+通常フローではMain用に再設定されたRhythmAudioController、単独実行ではMusicPlayerを使用する。どちらもStartOverlayを表示したまま本番音源を0秒から開始する。リードイン終了時刻は `RhythmTiming.beat_to_seconds(chart.lead_in_beats)` で求める。
 
-毎frame、MusicPlayerの再生位置をRhythmSession、GameplayVisual、RhythmDebugDisplayへ渡す。音楽終了時はprocessと音楽を停止し、成功数・失敗数をPayloadへ入れて `screen_completed` をemitする。
+リードイン中の入力は無視し、曲時刻が4拍目へ到達するとStartOverlayを隠して入力受付を有効にする。そのframeからControllerまたはMusicPlayerの曲時刻をRhythmSession、GameplayVisual、RhythmDebugDisplayへ渡す。本番音源の再生終了時にprocessと音楽を停止し、成功数・失敗数をPayloadへ入れて `screen_completed` をemitする。
 
 ## Result
 
@@ -155,4 +157,4 @@ StartOverlayを表示したまま1.5秒待ち、`start_game()` でOverlayを隠�
 
 RunContextがnullの場合、金額と件数は `--` になる。`player_number`が0以下の場合、累計番号は「No ---」になる。キャラクター生成が未成功、画像セットがnull、またはNORMAL画像が空の場合、FacePreviewを空にして「キャラクター画像なし」を表示する。撮影元の`captured_face_image`はResultには表示しない。
 
-`_ready()` で `assets/audio/result.mp3` が設定されていれば再生する。ActionButtonまたはCHEERS入力で空Payloadの完了Signalをemitし、AppがTitleへ遷移する。
+`_ready()` で `assets/audio/result.mp3` が設定されていれば再生し、その `finished` signalを受けてMusicPlayerのBGMを開始する。会計音が未設定の場合はBGMを直ちに開始する。ActionButtonまたはCHEERS入力で空Payloadの完了Signalをemitし、AppがTitleへ遷移する。

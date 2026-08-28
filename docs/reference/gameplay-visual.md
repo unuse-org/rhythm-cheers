@@ -18,7 +18,9 @@ sidebar_position: 6
 | `CheersEffect` | 4 | 成功時の衝突Effect |
 | `CheersText` | 5 | 「乾」「杯」、成功、失敗表示 |
 
-CharacterのRectはx=46〜674、y=0〜1116で、幅628・高さ1116である。Tableはy=680〜1109に配置される。
+CharacterのRectはx=46〜674、y=0〜1800で、幅628・高さ1800である。Tableは位置 `(721.05054, 1181)`、サイズ約720.36 × 350.65、回転角180度で配置される。PlayerCheersは位置 `(-3, 283)`、サイズ723 × 997である。
+
+Characterの表示倍率は `character_scale_multiplier` で指定し、初期値は1.3である。拡大基準はRectの下辺中央なので、倍率を変更しても足元とTableの位置関係は変わらない。この倍率は横スクロール用に複製したすべてのCharacterへ適用する。
 
 ## 固定Texture
 
@@ -31,7 +33,7 @@ CharacterのRectはx=46〜674、y=0〜1116で、幅628・高さ1116である。T
 | JUDGING | `assets/images/character_cheers.png` |
 | 背景 | `assets/images/background.png` |
 | テーブル | `assets/images/table.png` |
-| ユーザー側ジョッキ | `assets/images/player_cheers.png` |
+| ユーザー側の手とジョッキ | `assets/images/my_hand.png` |
 | 成功Effect | `assets/images/cheers_effect.png` |
 | 「乾」 | `assets/images/cheers_text_kan.png` |
 | 「杯」 | `assets/images/cheers_text_pai.png` |
@@ -78,13 +80,13 @@ vertical_offset = -sin(beat_progress × PI) × 12
 
 ## 乾杯相手の生成
 
-`configure()` 時に譜面内のPREPARE数を数える。0件の場合もOpponent数は1になる。`Opponent0` をtemplateとして、2人目以降をduplicateし、x方向へ `opponent_spacing` ずつ配置する。初期値は720pxである。
+`configure()` 時に譜面内のPREPAREのうち `starts_opponent` がtrueのeventを数える。2連乾杯の2回目のPREPAREは同じ相手へ適用するため数えない。0件の場合もOpponent数は1になる。`Opponent0` をtemplateとして、2人目以降をduplicateし、x方向へ `opponent_spacing` ずつ配置する。初期値は720pxである。
 
 各StationにはBackground、Character、Tableが含まれる。
 
 ## 横スクロール区間
 
-RETURN_NORMALから次のPREPAREまでを1つの移動区間として記録する。
+RETURN_NORMALから、次に `starts_opponent` がtrueとなるPREPAREまでを1つの移動区間として記録する。
 
 ```text
 start_beat = RETURN_NORMAL.beat

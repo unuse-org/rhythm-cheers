@@ -26,6 +26,8 @@ var character: TextureRect
 @export var character_cheers_texture: Texture2D
 @export var character_success_texture: Texture2D
 @export var character_failure_texture: Texture2D
+# 足元を動かさず、全ての乾杯相手を同じ倍率で拡大する
+@export_range(0.5, 2.0, 0.05) var character_scale_multiplier: float = 1.3
 # NORMAL中に拍に合わせて動かす上下幅
 @export_range(0.0, 48.0, 0.5) var character_bob_amplitude: float = 12.0
 
@@ -166,6 +168,9 @@ func initialize_movement_segments() -> void:
 				previous_return_beat = event_beat
 
 			RhythmTypes.EventType.PREPARE:
+				# 2連乾杯の2回目は同じ相手なので、新しい席には数えない。
+				if not chart_event.get("starts_opponent", true):
+					continue
 				# 2人目以降のPREPAREが、直前の移動区間の終点になる
 				if opponent_count > 0 and not is_nan(previous_return_beat):
 					movement_segments.append({
@@ -200,7 +205,20 @@ func initialize_opponent_stations() -> void:
 		world.add_child(station)
 		opponent_stations.append(station)
 
+	for station: Control in opponent_stations:
+		apply_character_scale(station)
+
 	world.size.x = opponent_spacing * opponent_count
+
+
+# 下辺中央を拡大の基準点にして、人物の足元とテーブルの位置関係を保つ
+func apply_character_scale(station: Control) -> void:
+	var station_character := station.get_node("Character") as TextureRect
+	station_character.pivot_offset = Vector2(
+		station_character.size.x * 0.5,
+		station_character.size.y
+	)
+	station_character.scale = Vector2.ONE * character_scale_multiplier
 
 
 # 状態変更や上下動を適用するCharacterノードを切り替える

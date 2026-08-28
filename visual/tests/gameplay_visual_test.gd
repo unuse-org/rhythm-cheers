@@ -249,19 +249,29 @@ func test_result_visual_transitions(chart: RhythmChart) -> void:
 	expect_control_rect(
 		visual.character,
 		Vector2(46.0, 0.0),
-		Vector2(628.0, 1116.0),
+		Vector2(628.0, 1800.0),
 		"Character"
+	)
+	expect_vector_approx(
+		visual.character.pivot_offset,
+		Vector2(314.0, 1800.0),
+		"Characterの拡大基準を下辺中央に置く"
+	)
+	expect_vector_approx(
+		visual.character.scale,
+		Vector2(1.3, 1.3),
+		"Characterを1.3倍で表示する"
 	)
 	expect_control_rect(
 		visual.opponent_stations[0].get_node("Table") as Control,
-		Vector2(0.0, 680.0),
-		Vector2(720.0, 429.0),
+		Vector2(721.05054, 1181.0),
+		Vector2(720.3574, 350.6497),
 		"Table"
 	)
 	expect_control_rect(
 		visual.player_cheers,
-		Vector2(232.0, 890.0),
-		Vector2(256.0, 269.0),
+		Vector2(-3.0, 283.0),
+		Vector2(723.0, 997.0),
 		"PlayerCheers"
 	)
 
@@ -304,7 +314,7 @@ func test_result_visual_transitions(chart: RhythmChart) -> void:
 	session.change_character_state(RhythmTypes.CharacterState.SUCCESS)
 	expect_texture_name(
 		visual.player_cheers.texture,
-		"player_cheers.png",
+		"my_hand.png",
 		"SUCCESSではユーザー側の手とジョッキ画像を使用する"
 	)
 	expect_true(visual.player_cheers.visible, "SUCCESSではジョッキを表示する")
@@ -527,6 +537,12 @@ func test_opponent_scroll_transitions(chart: RhythmChart) -> void:
 			Vector2(visual.opponent_spacing * index, 0.0),
 			"乾杯相手%dの配置" % index
 		)
+		var station_character := station.get_node("Character") as TextureRect
+		expect_vector_approx(
+			station_character.scale,
+			Vector2.ONE * visual.character_scale_multiplier,
+			"乾杯相手%dの人物拡大率" % index
+		)
 
 	var first_character := visual.character
 	var prepare_time := session.timing.beat_to_seconds(1.0)
@@ -634,8 +650,12 @@ func expect_control_rect(
 	expected_size: Vector2,
 	label: String
 ) -> void:
-	expect_equal(control.position, expected_position, "%sの位置" % label)
-	expect_equal(control.size, expected_size, "%sのサイズ" % label)
+	expect_vector_approx(
+		control.position,
+		expected_position,
+		"%sの位置" % label
+	)
+	expect_vector_approx(control.size, expected_size, "%sのサイズ" % label)
 
 
 func expect_vector_approx(

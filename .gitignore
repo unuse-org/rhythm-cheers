@@ -11,3 +11,7 @@
 # ネイティブ拡張のローカルビルド生成物と私用テスト画像。
 /native/kanpai_image/build*/
 /native/kanpai_image/tests/fixtures/private/
+
+*.dmg
+
+*.pdf

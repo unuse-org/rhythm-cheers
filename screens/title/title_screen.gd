@@ -8,6 +8,7 @@ extends FlowScreen
 @onready var logo: TextureRect = %Logo
 @onready var action_button: TextureButton = %ActionButton
 @onready var door_audio_player: AudioStreamPlayer = %DoorAudioPlayer
+@onready var music_player: AudioStreamPlayer = %MusicPlayer
 
 var is_opening: bool = false
 var door_tween: Tween
@@ -16,12 +17,16 @@ var door_tween: Tween
 func _ready() -> void:
 	action_button.pressed.connect(_on_action_button_pressed)
 
+	if music_player.stream != null:
+		music_player.play()
+
 
 func _exit_tree() -> void:
 	if door_tween != null and door_tween.is_valid():
 		door_tween.kill()
 
 	door_audio_player.stop()
+	music_player.stop()
 
 
 func receive_sensor_input(
@@ -33,6 +38,7 @@ func receive_sensor_input(
 
 # 乾杯入力後に店の引き戸を左へ開き、演出終了後に次画面へ進む。
 func start_door_opening() -> void:
+	door_audio_player.volume_db = 20.0
 	if is_completed or is_opening:
 		return
 

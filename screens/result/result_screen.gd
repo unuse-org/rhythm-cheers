@@ -12,20 +12,37 @@ extends FlowScreen
 @onready var total_amount_label: Label = %TotalAmountLabel
 @onready var face_preview: TextureRect = %FacePreview
 @onready var face_status_label: Label = %FaceStatusLabel
+@onready var music_player: AudioStreamPlayer = %MusicPlayer
 
 
 func _ready() -> void:
 	action_button.pressed.connect(_on_action_button_pressed)
+	result_audio_player.finished.connect(_on_result_audio_finished)
 	update_result_display()
 
 	# レシートが現れるタイミングに合わせ、会計の効果音を一度だけ鳴らす。
 	if result_audio_player.stream != null:
 		result_audio_player.play()
+	else:
+		play_music()
+
+
+# 会計音とBGMが重ならないよう、効果音の再生終了後にBGMを開始する。
+func _on_result_audio_finished() -> void:
+	play_music()
+
+
+func play_music() -> void:
+	if music_player.stream != null and not music_player.playing:
+		music_player.play()
 
 
 func _exit_tree() -> void:
 	result_audio_player.stop()
 	result_audio_player.stream = null
+
+	music_player.stop()
+	music_player.stream = null
 
 
 func setup(context: RunContext) -> void:

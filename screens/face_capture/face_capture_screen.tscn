@@ -10,6 +10,7 @@
 [ext_resource type="Texture2D" uid="uid://krbua1hub65t" path="res://assets/images/camera_message_2.png" id="6_wwosl"]
 [ext_resource type="Texture2D" uid="uid://bi1voku46xuv1" path="res://assets/images/camera_face.png" id="7_face_guide"]
 [ext_resource type="AudioStream" uid="uid://bwo3pv0fj4hf3" path="res://assets/audio/shutter.mp3" id="8_shutter_audio"]
+[ext_resource type="AudioStream" uid="uid://derptdxxd3kec" path="res://assets/audio/OPBGM.mp3" id="11_tya51"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_chroma"]
 shader = ExtResource("6_chroma")
@@ -179,7 +180,7 @@ horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2
 
-[node name="ShutterAudioPlayer" type="AudioStreamPlayer" parent="."]
+[node name="ShutterAudioPlayer" type="AudioStreamPlayer" parent="." unique_id=8064144]
 unique_name_in_owner = true
 stream = ExtResource("8_shutter_audio")
 
@@ -197,3 +198,7 @@ grow_vertical = 2
 mouse_filter = 2
 stream = ExtResource("5_shutter")
 expand = true
+
+[node name="MusicPlayer" type="AudioStreamPlayer" parent="." unique_id=725453810]
+unique_name_in_owner = true
+stream = ExtResource("11_tya51")

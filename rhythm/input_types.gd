@@ -8,6 +8,7 @@ enum InputType {
 enum EventType {
 	PREPARE,
 	EXPECT_CHEERS,
+	SHOW_CHEERS,
 	RETURN_NORMAL,
 }
 

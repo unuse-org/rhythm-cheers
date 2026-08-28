@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://dqk6lwrhsr5h2" path="res://screens/result/result_screen.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://u4lnh70ds2a" path="res://assets/images/background.png" id="2_background"]
 [ext_resource type="Texture2D" uid="uid://b43ysp4ovklsr" path="res://assets/images/logo.png" id="3_logo"]
+[ext_resource type="AudioStream" uid="uid://derptdxxd3kec" path="res://assets/audio/OPBGM.mp3" id="3_nwasq"]
 [ext_resource type="Shader" uid="uid://dvv1uykahxuw4" path="res://screens/result/grayscale.gdshader" id="4_bc4b1"]
 [ext_resource type="AudioStream" uid="uid://ba3ivf3jhtcvb" path="res://assets/audio/result.mp3" id="4_result_audio"]
 
@@ -31,6 +32,10 @@ script = ExtResource("1_script")
 [node name="ResultAudioPlayer" type="AudioStreamPlayer" parent="." unique_id=52889093]
 unique_name_in_owner = true
 stream = ExtResource("4_result_audio")
+
+[node name="MusicPlayer" type="AudioStreamPlayer" parent="." unique_id=84806343]
+unique_name_in_owner = true
+stream = ExtResource("3_nwasq")
 
 [node name="Background" type="TextureRect" parent="." unique_id=865249723]
 layout_mode = 1

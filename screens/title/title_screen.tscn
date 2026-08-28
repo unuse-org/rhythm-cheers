@@ -7,6 +7,7 @@
 [ext_resource type="Texture2D" uid="uid://b43ysp4ovklsr" path="res://assets/images/logo.png" id="5_xh3uk"]
 [ext_resource type="Texture2D" uid="uid://d3cwlxc28tqln" path="res://assets/images/goodwil.png" id="6_1k1ey"]
 [ext_resource type="AudioStream" uid="uid://c0t4j2q6egulm" path="res://assets/audio/garagara.mp3" id="7_garagara"]
+[ext_resource type="AudioStream" uid="uid://derptdxxd3kec" path="res://assets/audio/OPBGM.mp3" id="8_1k1ey"]
 
 [node name="TitleScreen" type="Control" unique_id=697945681]
 layout_mode = 3
@@ -79,3 +80,7 @@ stretch_mode = 4
 [node name="DoorAudioPlayer" type="AudioStreamPlayer" parent="." unique_id=2002027828]
 unique_name_in_owner = true
 stream = ExtResource("7_garagara")
+
+[node name="MusicPlayer" type="AudioStreamPlayer" parent="." unique_id=1454744974]
+unique_name_in_owner = true
+stream = ExtResource("8_1k1ey")
