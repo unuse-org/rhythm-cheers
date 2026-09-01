@@ -12,6 +12,7 @@ func _initialize() -> void:
 func run_tests() -> void:
 	test_fake_camera_capture()
 	test_preferred_camera_format()
+	test_preferred_camera_feed()
 	finish_tests()
 
 
@@ -58,7 +59,6 @@ func test_preferred_camera_format() -> void:
 		formats,
 		Vector2i(1280, 720)
 	)
-
 	expect_equal(selected_index, 1, "希望解像度と一致する形式を選ぶ")
 	expect_equal(
 		WebCameraCaptureSource.find_preferred_format_index([], Vector2i.ZERO),
@@ -66,6 +66,27 @@ func test_preferred_camera_format() -> void:
 		"有効な形式がない場合は未選択を返す"
 	)
 
+
+func test_preferred_camera_feed() -> void:
+	var feed_names: Array[String] = [
+		"FaceTime HD Camera",
+		"Logi C922 Pro Stream Webcam",
+	]
+	expect_equal(
+		WebCameraCaptureSource.find_preferred_feed_index(feed_names, "logi"),
+		1,
+		"カメラ名を大文字小文字なしの部分一致で選ぶ"
+	)
+	expect_equal(
+		WebCameraCaptureSource.find_preferred_feed_index(feed_names, ""),
+		-1,
+		"優先名が空なら指定選択しない"
+	)
+	expect_equal(
+		WebCameraCaptureSource.find_preferred_feed_index(feed_names, "Elgato"),
+		-1,
+		"一致するカメラがなければ未選択を返す"
+	)
 
 func _on_preview_ready(texture: Texture2D) -> void:
 	preview_texture = texture

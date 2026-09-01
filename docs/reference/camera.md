@@ -40,6 +40,7 @@ sidebar_position: 7
 | --- | --- |
 | `SUPPORTED_PLATFORMS` | `macOS`のみ |
 | `preferred_size` | 1280 × 720 |
+| `preferred_camera_name` | `C920` |
 
 ### 起動
 
@@ -50,9 +51,11 @@ macOSでは次を行う。
 1. `CameraServer.camera_feeds_updated` と `camera_feed_removed` を購読する。
 2. StateをDISCOVERINGへ変更する。
 3. `CameraServer.monitoring_feeds = true` にする。
-4. `CameraServer.feeds()` の先頭Feedを選ぶ。
+4. `CameraServer.feeds()` から、`preferred_camera_name`（初期値 `C920`）を名前の部分一致で含むFeedを選ぶ。
 
-Feedが空の場合はUNAVAILABLEになる。複数Feedからの選択UIはなく、配列先頭を使用する。
+FaceCaptureScreenにも同名のexport propertyがあり、生成するWebCameraCaptureSourceへ渡す。別のカメラを使う場合は、FaceCaptureScreenのInspectorで製品名の一部へ変更する。
+
+一致するFeedがない場合は先頭Feedを使い、StatusLabelへフォールバックしたことと検出した全カメラ名を表示する。Feedが空の場合はUNAVAILABLEになる。複数Feedからの選択UIはない。
 
 ### Format選択
 
