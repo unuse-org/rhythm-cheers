@@ -202,3 +202,4 @@ expand = true
 [node name="MusicPlayer" type="AudioStreamPlayer" parent="." unique_id=725453810]
 unique_name_in_owner = true
 stream = ExtResource("11_tya51")
+parameters/looping = true
