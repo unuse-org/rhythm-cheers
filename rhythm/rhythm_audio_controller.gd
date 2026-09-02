@@ -14,6 +14,9 @@ const AUDIO_SHORTFALL_TOLERANCE: float = 0.1
 
 # headless testではAudioStreamPlayerを動かさず、simulated_song_timeを使う。
 @export var playback_enabled: bool = true
+# 本番・チュートリアルで共通利用する音量。曲と掛け声を同じ基準で上げる。
+@export_range(-24.0, 12.0, 0.5) var music_volume_db: float = 0.0
+@export_range(-24.0, 12.0, 0.5) var cue_volume_db: float = 0.0
 
 var chart: RhythmChart
 var timing: RhythmTiming
@@ -28,8 +31,16 @@ var audio_shortfall_seconds: float = 0.0
 
 
 func _ready() -> void:
+	apply_volume_settings()
 	set_process(false)
 	base_music_player.finished.connect(finish_song)
+
+
+# シーン遷移でChartを差し替えても、共通の再生音量を維持する。
+func apply_volume_settings() -> void:
+	base_music_player.volume_db = music_volume_db
+	for player: AudioStreamPlayer in cue_players:
+		player.volume_db = cue_volume_db
 
 
 func configure(new_chart: RhythmChart) -> bool:

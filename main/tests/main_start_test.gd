@@ -28,6 +28,11 @@ func test_main_waits_for_start_sequence() -> void:
 
 	expect_true(not main.get("is_game_started"), "開始表示中はゲームを止める")
 	expect_true(music_player.playing, "開始表示中から本番音源を再生する")
+	expect_equal(
+		music_player.volume_db,
+		6.0,
+		"単独実行時の本番音源を+6 dBにする"
+	)
 	expect_true(start_overlay.visible, "本番スタート表示を見せる")
 	expect_true(main.is_processing(), "リードイン中も曲時刻を監視する")
 

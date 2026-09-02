@@ -38,6 +38,11 @@ func test_tutorial_uses_full_track_and_clear_sequence() -> void:
 	)
 	expect_true(tutorial.progress_panel.visible, "プレイ中は進捗を表示する")
 	expect_equal(tutorial.progress_label.text, "0 / 3", "初期進捗の表示")
+	expect_equal(
+		tutorial.music_player.volume_db,
+		6.0,
+		"単独実行時のチュートリアル音源を+6 dBにする"
+	)
 
 	tutorial.receive_sensor_input_at(RhythmTypes.InputType.CHEERS, 0.0)
 	expect_true(

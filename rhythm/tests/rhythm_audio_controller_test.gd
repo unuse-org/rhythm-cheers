@@ -13,6 +13,17 @@ func _initialize() -> void:
 
 func run_tests() -> void:
 	var controller := create_controller()
+	expect_equal(
+		controller.base_music_player.volume_db,
+		6.0,
+		"BGMを+6 dBで再生する"
+	)
+	for cue_player: AudioStreamPlayer in controller.cue_players:
+		expect_equal(
+			cue_player.volume_db,
+			6.0,
+			"Cue音を+6 dBで再生する"
+		)
 	var full_chart := RhythmChart.load_from_file(CHART_PATH)
 	var tutorial_chart := full_chart.create_section("tutorial", true)
 	expect_true(

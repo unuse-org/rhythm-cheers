@@ -12,6 +12,7 @@ script = ExtResource("1_3wy1v")
 
 [node name="MusicPlayer" type="AudioStreamPlayer" parent="." unique_id=288864407]
 stream = ExtResource("3_4dugh")
+volume_db = 0.0
 
 [node name="RhythmSession" type="Node" parent="." unique_id=1535702752]
 script = ExtResource("6_session")

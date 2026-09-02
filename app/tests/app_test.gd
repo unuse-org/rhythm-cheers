@@ -32,6 +32,7 @@ func _initialize() -> void:
 func run_tests() -> void:
 	await test_app_flow()
 	test_sensor_provider_ownership()
+	await test_escape_returns_to_title()
 	finish_tests()
 
 
@@ -330,6 +331,55 @@ func test_sensor_provider_ownership() -> void:
 	)
 
 	main.free()
+
+
+func test_escape_returns_to_title() -> void:
+	var app_scene := load(APP_SCENE_PATH) as PackedScene
+	var app := app_scene.instantiate() as RhythmCheersApp
+	app.sensor_mode = RhythmCheersApp.SensorMode.KEYBOARD
+	root.add_child(app)
+	await process_frame
+	app.rhythm_audio_controller.playback_enabled = false
+
+	# 実行中の本番画面からEscを押した状態を作る。
+	app.show_screen(SceneFlow.ScreenId.MAIN)
+	await process_frame
+	app.run_context.cheers_success_count = 4
+	app.run_context.tutorial_completed = true
+	var previous_context := app.run_context
+
+	var escape_event := InputEventKey.new()
+	escape_event.keycode = KEY_ESCAPE
+	escape_event.pressed = true
+	# Appの_inputまで実際の入力配信経路で届くことを確認する。
+	Input.parse_input_event(escape_event)
+	await process_frame
+
+	expect_equal(
+		app.current_screen_id,
+		SceneFlow.ScreenId.TITLE,
+		"Escapeでタイトルへ強制帰還する"
+	)
+	expect_true(
+		not app.rhythm_audio_controller.running,
+		"強制帰還時にリズム音源を停止する"
+	)
+	expect_true(
+		app.run_context != previous_context,
+		"強制帰還時にRunContextを作り直す"
+	)
+	expect_equal(
+		app.run_context.cheers_success_count,
+		0,
+		"強制帰還時にプレイ結果を破棄する"
+	)
+	expect_true(
+		not app.run_context.tutorial_completed,
+		"強制帰還時にチュートリアル状態を破棄する"
+	)
+
+	app.free()
+	await process_frame
 
 
 func expect_true(condition: bool, message: String) -> void:
