@@ -5,8 +5,9 @@ extends Control
 @onready var world: Control = $World
 # 乾杯相手1人分の席。譜面上のPREPARE数に合わせて複製する
 @onready var opponent_template: Control = $World/Opponent0
-# 成功時だけ表示する、ユーザー側のジョッキと衝突エフェクト
+# 入力時に表示するユーザー側のジョッキと、成功時の衝突エフェクト
 @onready var player_cheers: TextureRect = $PlayerCheers
+@onready var player_input_timer: Timer = $PlayerInputTimer
 @onready var cheers_effect: TextureRect = $CheersEffect
 # 譜面状態に合わせて「乾」「杯」と失敗印を組み合わせる画像群
 @onready var cheers_kan: TextureRect = $CheersText/Kan
@@ -30,6 +31,10 @@ var character: TextureRect
 @export_range(0.5, 2.0, 0.05) var character_scale_multiplier: float = 1.3
 # NORMAL中に拍に合わせて動かす上下幅
 @export_range(0.0, 48.0, 0.5) var character_bob_amplitude: float = 12.0
+
+@export_category("Player Input")
+# 譜面判定とは独立して、CHEERS入力が見える時間
+@export_range(0.05, 1.0, 0.05) var player_input_display_duration: float = 0.3
 
 # 隣り合う乾杯相手の横方向の間隔
 @export_category("Horizontal Progress")
@@ -57,11 +62,15 @@ var current_character_state: RhythmTypes.CharacterState = (
 func _ready() -> void:
 	# スクロール位置を毎フレーム絶対座標で計算するために保存する
 	world_base_position = world.position
+	player_input_timer.timeout.connect(hide_player_input)
+	hide_player_input()
 
 
 # RhythmSessionを設定し、譜面から席と移動区間を組み立てる
 func configure(new_rhythm_session: RhythmSession) -> void:
 	rhythm_session = new_rhythm_session
+	player_input_timer.stop()
+	hide_player_input()
 	world.position = world_base_position
 	initialize_movement_segments()
 	initialize_opponent_stations()
@@ -77,6 +86,20 @@ func configure(new_rhythm_session: RhythmSession) -> void:
 
 	current_character_state = rhythm_session.character_state
 	set_character_state(current_character_state)
+
+
+# センサ入力の即時フィードバック。譜面上の成功・失敗は参照しない。
+func show_player_input(input_type: RhythmTypes.InputType) -> void:
+	if input_type != RhythmTypes.InputType.CHEERS:
+		return
+
+	player_cheers.visible = true
+	# 連続入力ではTimerを先頭から再開し、最後の入力から一定時間表示する。
+	player_input_timer.start(player_input_display_duration)
+
+
+func hide_player_input() -> void:
+	player_cheers.visible = false
 
 
 # 撮影画像から生成した5状態をTexture2Dへ変換し、全ての相手へ共有する。
@@ -332,11 +355,9 @@ func reset_character_position() -> void:
 	character.position = character_base_position
 
 
-# ユーザー側ジョッキと衝突エフェクトは成功中だけ表示する
+# 衝突エフェクトだけを判定成功へ連動する。ユーザー側の手は入力Timerが制御する。
 func update_result_visuals(state: RhythmTypes.CharacterState) -> void:
-	var succeeded := state == RhythmTypes.CharacterState.SUCCESS
-	player_cheers.visible = succeeded
-	cheers_effect.visible = succeeded
+	cheers_effect.visible = state == RhythmTypes.CharacterState.SUCCESS
 
 
 # NORMAL → 乾 → 乾杯と組み立て、失敗時は「乾」の上に「失」を重ねる

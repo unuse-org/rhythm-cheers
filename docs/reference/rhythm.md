@@ -34,20 +34,20 @@ sidebar_position: 5
 
 小節範囲は `start_measure <= measure < end_measure` で扱う。`create_section(name)` は全曲と同じ拍番号・BPMマップを維持する。`create_section(name, true)` は指定区間内のevent、Cue、BPM変更をローカルタイムラインへ変換し、そのSectionの音源パスを設定する。
 
-`lead_in_beats` が設定されたSectionでは、ローカル変換したevent、Cue、BPM変更を指定拍数だけ後ろへ移す。現在のMainは4拍、Tutorialは未指定のため0拍である。
+`lead_in_beats` が設定されたSectionでは、ローカル変換したevent、Cue、BPM変更を指定拍数だけ後ろへ移す。現在のMainは12拍、Tutorialは未指定のため0拍である。
 
 旧形式の `bpm`、`offset`、`events` を直接指定するJSONも読み込める。旧形式は先頭0拍のtempo change 1件へ変換される。
 
 ## 現在の全曲譜面
 
-offsetは各Section音源の先頭から0.64秒、拍子は4/4である。
+offsetは0秒、拍子は4/4である。各Section音源の先頭を0拍目として扱う。
 
 | Section | ベース音源 |
 | --- | --- |
 | Tutorial | `assets/audio/OffVocal_チュートリアル.mp3` |
 | Main | `assets/audio/OffVocal_本番.mp3` |
 
-Main Sectionの `lead_in_beats` は4である。本番音源は0秒から再生するが、最初のCueと譜面小節は4拍後から始まる。
+Main Sectionの `lead_in_beats` は12である。本番音源は全曲タイムラインの13小節目から始まり、最初のCueと16小節目の譜面は12拍後から始まる。Mainローカル時刻では最初の「ワン」が5.143秒、「乾」が6.000秒、「杯」と判定対象が6.429秒である。
 
 | 小節範囲 | Section | BPM |
 | --- | --- | --- |
@@ -58,7 +58,7 @@ Main Sectionの `lead_in_beats` は4である。本番音源は0秒から再生�
 | 45以上53未満 | Main | 140 |
 | 53以上61未満 | Main | 150 |
 
-2連乾杯は20、26、27、38、44、48、56小節目である。60小節目は入力と掛け声のないアウトロで、61小節目の先頭を曲終了境界とする。
+2連乾杯は20、26、27、38、44、48、56小節目である。60小節目は通常乾杯で、61小節目の先頭を曲終了境界とする。現在 `no_input_measures` は空である。
 
 ### 小節から生成するevent
 
@@ -105,9 +105,11 @@ beat = segment_start_beat
 
 `RhythmAudioController` はApp直下にあり、OffVocal用の `BaseMusicPlayer` と掛け声用の `CuePlayerA`、`CuePlayerB` を所有する。Tutorial表示時はTutorialのローカルChartと音源、Main表示時はMainのローカルChartと音源へ再設定される。
 
-Controllerは再生位置へ `AudioServer.get_time_since_last_mix()` を加え、`AudioServer.get_output_latency()` を引いた値を曲時刻として返す。frame更新がCue時刻より遅れた場合は遅れた秒数を再生開始offsetへ渡す。遅れが音源尺以上の場合は実音声を再生せず、Cueを処理済みにする。
+Controllerは画面表示・入力判定用の曲時刻として、再生位置へ `AudioServer.get_time_since_last_mix()` を加え、`AudioServer.get_output_latency()` を引いた値を返す。Cueの開始判定には出力Latencyを引かないMix時刻を使い、新しいCueがBaseMusicと同じ出力Latencyを通った時点で揃うようにする。frame更新がCue時刻より遅れた場合は遅れた秒数を再生開始offsetへ渡す。遅れが音源尺以上の場合は実音声を再生せず、Cueを処理済みにする。
 
-ローカルChartには対象SectionのCueだけが含まれる。Main内のCue、event、BPM変更拍はSection先頭からの相対拍へ変換した後、4拍のリードイン分だけ後ろへ移される。
+BaseMusicの長さが譜面終了時刻より0.1秒を超えて短い場合、Controllerは不足秒数をwarningへ出す。現在のTutorial音源は譜面より約13.714秒短いため、このwarningの対象である。
+
+ローカルChartには対象SectionのCueだけが含まれる。Main内のCue、event、BPM変更拍はSection先頭からの相対拍へ変換した後、12拍のリードイン分だけ後ろへ移される。
 
 ## RhythmSessionの状態
 
@@ -124,27 +126,30 @@ Controllerは再生位置へ `AudioServer.get_time_since_last_mix()` を加え�
 | `cheers_success_count` | 成功確定数。初期値0 |
 | `cheers_failure_count` | MISS確定数。初期値0 |
 
-`EXPECT_CHEERS` は「杯」の対象時刻より `MISS_WINDOW` 秒前に入力受付を開始し、対象拍を `pending_inputs` へ追加する。受付開始時点ではPREPARE画像を維持し、対象時刻の `SHOW_CHEERS` でJUDGINGへ進む。対象時刻前に成功が確定した場合、`SHOW_CHEERS` はSUCCESS画像を上書きしない。
+`EXPECT_CHEERS` は「杯」の対象時刻より `EARLY_SUCCESS_WINDOW` 秒前に入力受付を開始し、対象拍を `pending_inputs` へ追加する。受付開始時点ではPREPARE画像を維持し、対象時刻の `SHOW_CHEERS` でJUDGINGへ進む。対象時刻前に成功が確定した場合、`SHOW_CHEERS` はSUCCESS画像を上書きしない。
 
-2連乾杯では2つの対象を順番に保持する。各対象には `SHOW_CHEERS` を通過したかを保持し、先の入力を解決した後も次の「杯」より前ならPREPAREを維持する。frameが複数eventをまたいだ場合は、次のeventを実行する前に期限を過ぎた対象を拍順にMISS確定する。
+2連乾杯では2つの対象を拍順に保持する。成功範囲が重なる場合は入力時刻に最も近い対象を選ぶ。後の対象を選んだ場合は、それより前の未入力をMISS確定してから選択対象を成功にする。各対象には `SHOW_CHEERS` を通過したかを保持し、先の入力を解決した後も次の「杯」より前ならPREPAREを維持する。frameが複数eventをまたいだ場合は、次のeventを実行する前に期限を過ぎた対象を拍順にMISS確定する。
 
 ## 判定窓
 
 | 定数 | 秒 |
 | --- | --- |
-| `PERFECT_WINDOW` | 0.05 |
-| `GOOD_WINDOW` | 0.10 |
-| `MISS_WINDOW` | 0.20 |
+| `PERFECT_WINDOW` | ±0.20 |
+| `EARLY_SUCCESS_WINDOW` | 0.20 |
+| `LATE_SUCCESS_WINDOW` | 0.30 |
+| `MISS_WINDOW` | 0.30（互換名） |
 
 目標時刻を `target`、入力時刻を `input` とすると、差は `input - target` で計算する。
 
 | 条件 | `last_judgement` | 入力対象 | 件数 |
 | --- | --- | --- | --- |
-| 絶対差 ≤ 0.05 | `PERFECT` | FIFO先頭を解決 | 成功 +1 |
-| 絶対差 ≤ 0.10 | `GOOD` | FIFO先頭を解決 | 成功 +1 |
-| 差 < -0.10 | `TOO EARLY` | 維持 | 変更なし |
-| 差 > 0.10 | `TOO LATE` | 維持 | 変更なし |
-| 時刻 ≥ target + 0.20 | `MISS: CHEERS` | FIFO先頭を解決 | 失敗 +1 |
+| `-0.20 ≤ 差 ≤ 0.20` | `PERFECT` | 最も近い対象を解決 | 成功 +1 |
+| `0.20 < 差 ≤ 0.30` | `GOOD` | 最も近い対象を解決 | 成功 +1 |
+| 差 < -0.20 | `TOO EARLY` | 維持 | 変更なし |
+| 差 > 0.30 | `TOO LATE` | 維持 | 変更なし |
+| 未入力のまま時刻 ≥ target + 0.30 | `MISS: CHEERS` | 対象を解決 | 失敗 +1 |
+
+CHEERS入力を受け取った処理内では、+0.30秒ちょうどの成功判定をMISS確定より先に行う。通常の時間進行で入力がない場合は、既存の譜面イベント順を維持するため+0.30秒到達時にMISSを確定する。
 
 入力待ちでないときの入力は `NO INPUT EXPECTED`、CHEERS以外の入力は `WRONG INPUT TYPE` を `last_judgement` に設定してfalseを返す。
 
@@ -164,8 +169,8 @@ input_resolved(
 
 Tutorialは1小節目から16小節目直前までを使用する。成功数が3未満ならTutorial音源を0秒へ戻して同区間を再実行する。成功時はClearOverlayを表示して待機せず、Mainへ遷移する。
 
-Mainは画面生成直後に本番音源を0秒から再生し、4拍の間はStartOverlayを表示する。入力、RhythmSession、GameplayVisual、RhythmDebugDisplayはリードイン終了時刻まで進めない。4拍目でOverlayを隠し、最初の掛け声Cueとゲーム進行を開始する。
+Mainは画面生成直後に本番音源を0秒から再生し、12拍の間はStartOverlayを表示する。入力、RhythmSession、GameplayVisual、RhythmDebugDisplayはリードイン終了時刻まで進めない。12拍目でOverlayを隠し、最初の掛け声Cueとゲーム進行を開始する。
 
-音源の再生終了時にControllerを停止し、成功数と失敗数をAppへ返す。60小節目には入力と掛け声がないため、音源末尾の余韻中は新しい判定が発生しない。
+音源の再生終了時にControllerを停止し、成功数と失敗数をAppへ返す。最後の判定対象は60小節目の通常乾杯である。
 
 TutorialまたはMainを単独実行してControllerが注入されていない場合は、各シーン内のMusicPlayerを代替として使用する。

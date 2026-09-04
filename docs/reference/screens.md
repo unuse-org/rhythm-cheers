@@ -5,6 +5,10 @@ description: Title、FaceCapture、Tutorial、Main、Resultの現行動作
 sidebar_position: 3
 ---
 
+## App共通の開発操作
+
+`app/app.gd` は `Escape` キーを先行して受け取る。タイトル以外の画面で押すと、実行中のリズム音源を停止し、RunContextを破棄してタイトルへ戻る。この操作ではプレイ人数を加算しない。
+
 ## Title
 
 実装は `screens/title/title_screen.gd` と `title_screen.tscn` にある。
@@ -113,7 +117,7 @@ REVIEW開始直後の同一入力を再撮影に使わないよう、入力受�
 
 全曲譜面から `tutorial` Sectionをローカルタイムラインで作成し、1小節目以上16小節目未満のeventを0拍以上60拍未満へ変換してRhythmSessionへ設定する。終了拍は60拍目である。
 
-AppからRhythmAudioControllerが渡された通常フローでは、IntroTimer終了後にTutorial専用音源を0秒から開始する。Controllerがない単独実行ではシーン内のMusicPlayerを使用する。譜面、または代替再生時の音楽がnullの場合はprocessを止め、NoticeLabelへ初期化エラーを表示する。
+AppからRhythmAudioControllerが渡された通常フローでは、IntroTimer終了後にTutorial専用音源を0秒から開始する。Controllerがない単独実行ではシーン内のMusicPlayerを使用する。通常フローのBGMとCue音、単独実行時のMusicPlayerはいずれも初期値で+6 dBに設定される。譜面、または代替再生時の音楽がnullの場合はprocessを止め、NoticeLabelへ初期化エラーを表示する。
 
 成功数はTutorial内の `tutorial_success_count` にだけ記録される。`input_resolved` のjudgementが `PERFECT` または `GOOD` のとき、必要数まで加算する。
 
@@ -133,11 +137,11 @@ RunContextの生成成功Flagがtrueの場合、ImageSetをGameplayVisualへ渡�
 
 シーンのMusicPlayerには単独実行時の代替音源として `assets/audio/OffVocal_本番.mp3` が設定されている。
 
-`_ready()` ではprocessを停止し、全曲譜面から `main` Sectionをローカルタイムラインで作成する。16小節目以上61小節目未満のevent、Cue、BPM変更へ4拍を加え、Sectionの終了拍を184拍にする。RhythmSessionとGameplayVisualをconfigureし、RunContextの生成成功FlagがtrueならImageSetをGameplayVisualへ渡す。RhythmDebugDisplayはsensor mode名 `SHARED` でconfigureされる。
+`_ready()` ではprocessを停止し、全曲譜面から `main` Sectionをローカルタイムラインで作成する。16小節目以上61小節目未満のevent、Cue、BPM変更へ12拍を加え、Sectionの終了拍を192拍にする。RhythmSessionとGameplayVisualをconfigureし、RunContextの生成成功FlagがtrueならImageSetをGameplayVisualへ渡す。RhythmDebugDisplayはsensor mode名 `SHARED` でconfigureされる。
 
-通常フローではMain用に再設定されたRhythmAudioController、単独実行ではMusicPlayerを使用する。どちらもStartOverlayを表示したまま本番音源を0秒から開始する。リードイン終了時刻は `RhythmTiming.beat_to_seconds(chart.lead_in_beats)` で求める。
+通常フローではMain用に再設定されたRhythmAudioController、単独実行ではMusicPlayerを使用する。どちらもStartOverlayを表示したまま本番音源を0秒から開始する。RhythmAudioControllerのBGMとCue音、単独実行時のMusicPlayerはいずれも初期値で+6 dBに設定される。リードイン終了時刻は `RhythmTiming.beat_to_seconds(chart.lead_in_beats)` で求める。
 
-リードイン中の入力は無視し、曲時刻が4拍目へ到達するとStartOverlayを隠して入力受付を有効にする。そのframeからControllerまたはMusicPlayerの曲時刻をRhythmSession、GameplayVisual、RhythmDebugDisplayへ渡す。本番音源の再生終了時にprocessと音楽を停止し、成功数・失敗数をPayloadへ入れて `screen_completed` をemitする。
+リードイン中は判定を行わないが、CHEERS入力の手画像は表示する。曲時刻が12拍目へ到達するとStartOverlayを隠して譜面判定を有効にする。そのframeからControllerまたはMusicPlayerの曲時刻をRhythmSession、GameplayVisual、RhythmDebugDisplayへ渡す。本番音源の再生終了時にprocessと音楽を停止し、成功数・失敗数をPayloadへ入れて `screen_completed` をemitする。
 
 ## Result
 
@@ -157,4 +161,6 @@ RunContextの生成成功Flagがtrueの場合、ImageSetをGameplayVisualへ渡�
 
 RunContextがnullの場合、金額と件数は `--` になる。`player_number`が0以下の場合、累計番号は「No ---」になる。キャラクター生成が未成功、画像セットがnull、またはNORMAL画像が空の場合、FacePreviewを空にして「キャラクター画像なし」を表示する。撮影元の`captured_face_image`はResultには表示しない。
 
-`_ready()` で `assets/audio/result.mp3` が設定されていれば再生し、その `finished` signalを受けてMusicPlayerのBGMを開始する。会計音が未設定の場合はBGMを直ちに開始する。ActionButtonまたはCHEERS入力で空Payloadの完了Signalをemitし、AppがTitleへ遷移する。
+`_ready()` で `assets/audio/result.mp3` が設定されていれば再生し、その `finished` signalを受けてMusicPlayerのBGMを開始する。会計音が未設定の場合はBGMを直ちに開始する。
+
+表示開始時はActionButtonを無効化し、CHEERS入力も無視する。`input_accept_delay` の初期値5秒が経過すると両方を有効化する。その後、ActionButtonまたはCHEERS入力で空Payloadの完了Signalをemitし、AppがTitleへ遷移する。

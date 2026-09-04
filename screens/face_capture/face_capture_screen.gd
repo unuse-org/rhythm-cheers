@@ -13,6 +13,8 @@ enum Phase {
 
 @export var review_duration: float = 5.0
 @export var shutter_effect_enabled: bool = true
+# macOSのCameraFeed名に含まれる文字列。空欄なら先頭のカメラを使う。
+@export var preferred_camera_name: String = "C920"
 
 @onready var preview: TextureRect = %Preview
 @onready var face_guide: TextureRect = %FaceGuide
@@ -108,7 +110,9 @@ func _create_default_camera_source() -> CameraCaptureSource:
 	if DisplayServer.get_name() == "headless":
 		return FakeCameraCaptureSource.new()
 
-	return WebCameraCaptureSource.new()
+	var source := WebCameraCaptureSource.new()
+	source.preferred_camera_name = preferred_camera_name
+	return source
 
 
 func _attach_camera_source() -> void:

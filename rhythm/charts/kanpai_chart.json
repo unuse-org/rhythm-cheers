@@ -3,7 +3,7 @@
     "tutorial": "res://assets/audio/OffVocal_チュートリアル.mp3",
     "main": "res://assets/audio/OffVocal_本番.mp3"
   },
-  "offset": 0.64,
+  "offset": 0.0,
   "beats_per_measure": 4,
   "end_measure": 61,
   "sections": {
@@ -14,7 +14,7 @@
     "main": {
       "start_measure": 16,
       "end_measure": 61,
-      "lead_in_beats": 4
+      "lead_in_beats": 12
     }
   },
   "tempo_changes": [
@@ -26,7 +26,7 @@
   ],
   "default_pattern": "NORMAL",
   "double_cheers_measures": [20, 26, 27, 38, 44, 48, 56],
-  "no_input_measures": [60],
+  "no_input_measures": [],
   "cue_sets": {
     "120": {
       "count_1": "res://assets/audio/BPM120/1_BPM120.mp3",

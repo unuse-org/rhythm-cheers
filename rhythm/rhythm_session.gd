@@ -9,9 +9,11 @@ signal input_resolved(
 signal character_state_changed(state: RhythmTypes.CharacterState)
 
 # 判定ウィンドウ
-const PERFECT_WINDOW: float = 0.30
-const GOOD_WINDOW: float = 0.30
-const MISS_WINDOW: float = 0.20
+const PERFECT_WINDOW: float = 0.20
+const EARLY_SUCCESS_WINDOW: float = 0.20
+const LATE_SUCCESS_WINDOW: float = 0.30
+# 既存コード向けの互換名。MISS確定は遅い側の成功範囲を過ぎてから行う。
+const MISS_WINDOW: float = LATE_SUCCESS_WINDOW
 
 # 読み込み済みの譜面イベントと時間情報
 var chart: Array[Dictionary] = []
@@ -65,6 +67,9 @@ func receive_input(
 	sensor_input_type: RhythmTypes.InputType,
 	song_time: float
 ) -> bool:
+	# ProviderとMainのprocess順に依存せず、入力時刻までの受付開始を反映する。
+	process_chart_events(song_time, true)
+
 	if not input_expected:
 		set_judgement("NO INPUT EXPECTED")
 		return false
@@ -73,11 +78,19 @@ func receive_input(
 		set_judgement("WRONG INPUT TYPE")
 		return false
 
-	return judge_input_timing(song_time)
+	# +LATE_SUCCESS_WINDOWちょうどの入力を先に成功候補として評価する。
+	# 成功範囲外なら同じ時刻までのMISSを確定する。
+	var succeeded := judge_input_timing(song_time)
+	if not succeeded:
+		process_missed_inputs(song_time)
+	return succeeded
 
 
 # 譜面イベントを時刻に従って実行する
-func process_chart_events(song_time: float) -> void:
+func process_chart_events(
+	song_time: float,
+	preserve_late_boundary: bool = false
+) -> void:
 	while next_event_index < chart.size():
 		var chart_event: Dictionary = chart[next_event_index]
 
@@ -87,15 +100,15 @@ func process_chart_events(song_time: float) -> void:
 
 		var execution_time: float = event_time
 
-		# 判定時刻よりMISS_WINDOW秒前から入力受付を開始する
+		# 判定時刻より早い側の成功範囲だけ前から入力受付を開始する。
 		if event_type == RhythmTypes.EventType.EXPECT_CHEERS:
-			execution_time -= MISS_WINDOW
+			execution_time -= EARLY_SUCCESS_WINDOW
 
 		if song_time < execution_time:
 			break
 
 		# フレームが複数イベントをまたいだ場合も、イベント発生順でMISSを確定する。
-		process_missed_inputs(execution_time)
+		process_missed_inputs(execution_time, preserve_late_boundary)
 		execute_chart_event(chart_event)
 		next_event_index += 1
 
@@ -157,28 +170,61 @@ func judge_input_timing(song_time: float) -> bool:
 		set_judgement("NO INPUT EXPECTED")
 		return false
 
-	var target_beat: float = pending_inputs[0]["beat"]
-	var target_time: float = timing.beat_to_seconds(target_beat)
+	var candidate_index := find_nearest_input_candidate(song_time)
+	if candidate_index >= 0:
+		var target_beat: float = pending_inputs[candidate_index]["beat"]
+		var target_time: float = timing.beat_to_seconds(target_beat)
+		var absolute_difference := absf(song_time - target_time)
 
-	# 入力時刻と目標時刻の差を計算する
-	var difference: float = song_time - target_time
-	var absolute_difference: float = absf(difference)
+		# 2連乾杯の重複窓で後の対象が近い場合、先の未入力を飛ばさない。
+		# 先の対象をMISS確定してから、選んだ対象を成功として解決する。
+		for _index: int in candidate_index:
+			fail_first_input()
 
-	if absolute_difference <= PERFECT_WINDOW:
-		complete_input("PERFECT")
+		complete_input(
+			"PERFECT" if absolute_difference <= PERFECT_WINDOW else "GOOD"
+		)
 		return true
 
-	elif absolute_difference <= GOOD_WINDOW:
-		complete_input("GOOD")
-		return true
-
-	elif difference < -GOOD_WINDOW:
+	var first_target_beat: float = pending_inputs[0]["beat"]
+	var first_target_time: float = timing.beat_to_seconds(first_target_beat)
+	var difference: float = song_time - first_target_time
+	if difference < -EARLY_SUCCESS_WINDOW:
 		set_judgement("TOO EARLY")
 
 	else:
 		set_judgement("TOO LATE")
 
 	return false
+
+
+# 受付中の対象から、非対称の成功範囲内で入力時刻に最も近いものを返す。
+# 距離が同じ場合は拍順が先の対象を優先する。
+func find_nearest_input_candidate(song_time: float) -> int:
+	var nearest_index := -1
+	var nearest_distance := INF
+	for index: int in pending_inputs.size():
+		var target_beat: float = pending_inputs[index]["beat"]
+		var target_time: float = timing.beat_to_seconds(target_beat)
+		var difference := song_time - target_time
+		if (
+			(
+				difference < -EARLY_SUCCESS_WINDOW
+				and not is_equal_approx(difference, -EARLY_SUCCESS_WINDOW)
+			)
+			or (
+				difference > LATE_SUCCESS_WINDOW
+				and not is_equal_approx(difference, LATE_SUCCESS_WINDOW)
+			)
+		):
+			continue
+
+		var distance := absf(difference)
+		if distance < nearest_distance:
+			nearest_index = index
+			nearest_distance = distance
+
+	return nearest_index
 
 
 # 入力成功時の処理
@@ -202,31 +248,55 @@ func complete_input(judgement: String) -> void:
 
 
 # 入力されないまま判定可能時間を過ぎた場合
-func process_missed_inputs(song_time: float) -> void:
+func process_missed_inputs(
+	song_time: float,
+	preserve_late_boundary: bool = false
+) -> void:
 	while not pending_inputs.is_empty():
-		var target_beat: float = pending_inputs[0]["beat"]
-		var target_time: float = timing.beat_to_seconds(target_beat)
+		var target_time: float = timing.beat_to_seconds(
+			pending_inputs[0]["beat"]
+		)
 
 		# 次の乾杯受付開始と前の受付終了が同時でも、前を先に確定する。
-		if song_time < target_time + MISS_WINDOW:
+		var miss_time := target_time + MISS_WINDOW
+		# 入力処理中だけは+LATE_SUCCESS_WINDOWちょうどの判定を先に行う。
+		# 通常の時間進行では従来どおり、境界到達時にイベント順でMISSを確定する。
+		if (
+			song_time < miss_time
+			or (
+				preserve_late_boundary
+				and (
+					song_time <= miss_time
+					or is_equal_approx(song_time, miss_time)
+				)
+			)
+		):
 			break
 
-		var judgement: String = (
-			"MISS: %s"
-			% RhythmTypes.InputType.keys()[RhythmTypes.InputType.CHEERS]
-		)
-		pending_inputs.pop_front()
-		update_current_input()
-		set_judgement(judgement)
-		cheers_failure_count += 1
-		change_character_state(RhythmTypes.CharacterState.FAILURE)
-		input_resolved.emit(
-			target_beat,
-			RhythmTypes.InputType.CHEERS,
-			judgement
-		)
+		fail_first_input()
 
 	restore_pending_character_state()
+
+
+# キュー先頭をMISSとして解決する。連続乾杯の候補選択からも利用する。
+func fail_first_input() -> void:
+	if pending_inputs.is_empty():
+		return
+
+	var target_beat: float = pending_inputs.pop_front()["beat"]
+	var judgement: String = (
+		"MISS: %s"
+		% RhythmTypes.InputType.keys()[RhythmTypes.InputType.CHEERS]
+	)
+	update_current_input()
+	set_judgement(judgement)
+	cheers_failure_count += 1
+	change_character_state(RhythmTypes.CharacterState.FAILURE)
+	input_resolved.emit(
+		target_beat,
+		RhythmTypes.InputType.CHEERS,
+		judgement
+	)
 
 
 # 次の入力対象がすでに「杯」まで進んでいる場合だけJUDGINGへ戻す。

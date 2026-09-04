@@ -72,7 +72,9 @@ func test_character_follows_chart(chart: RhythmChart) -> void:
 	)
 
 	var cheers_time: float = session.timing.beat_to_seconds(2.0)
-	session.advance(cheers_time - RhythmSession.MISS_WINDOW + 0.001)
+	session.advance(
+		cheers_time - RhythmSession.EARLY_SUCCESS_WINDOW + 0.001
+	)
 	expect_equal(
 		session.character_state,
 		RhythmTypes.CharacterState.JUDGING,
@@ -111,7 +113,9 @@ func test_missed_cheers(chart: RhythmChart) -> void:
 	var cheers_time: float = session.timing.beat_to_seconds(2.0)
 
 	session.advance(prepare_time)
-	session.advance(cheers_time - RhythmSession.MISS_WINDOW + 0.001)
+	session.advance(
+		cheers_time - RhythmSession.EARLY_SUCCESS_WINDOW + 0.001
+	)
 	session.advance(cheers_time + RhythmSession.MISS_WINDOW + 0.001)
 
 	expect_equal(
@@ -288,6 +292,32 @@ func test_result_visual_transitions(chart: RhythmChart) -> void:
 		not visual.cheers_effect.visible,
 		"NORMALでは衝突エフェクトを表示しない"
 	)
+	visual.show_player_input(RhythmTypes.InputType.CHEERS)
+	expect_texture_name(
+		visual.player_cheers.texture,
+		"my_hand.png",
+		"入力フィードバックにユーザー側の手とジョッキ画像を使用する"
+	)
+	expect_true(
+		visual.player_cheers.visible,
+		"NORMALでもCHEERS入力時はユーザー側ジョッキを表示する"
+	)
+	expect_true(
+		not visual.cheers_effect.visible,
+		"判定成功前の入力では衝突エフェクトを表示しない"
+	)
+	var first_time_left := visual.player_input_timer.time_left
+	visual.show_player_input(RhythmTypes.InputType.CHEERS)
+	expect_true(
+		visual.player_input_timer.time_left >= first_time_left,
+		"連続入力では手の表示Timerを再開する"
+	)
+	visual.player_input_timer.stop()
+	visual.player_input_timer.timeout.emit()
+	expect_true(
+		not visual.player_cheers.visible,
+		"入力表示時間の終了後はユーザー側ジョッキを消す"
+	)
 
 	session.change_character_state(RhythmTypes.CharacterState.PREPARE)
 	expect_texture_name(
@@ -311,13 +341,9 @@ func test_result_visual_transitions(chart: RhythmChart) -> void:
 		"JUDGINGではユーザー側ジョッキを表示しない"
 	)
 
+	visual.show_player_input(RhythmTypes.InputType.CHEERS)
 	session.change_character_state(RhythmTypes.CharacterState.SUCCESS)
-	expect_texture_name(
-		visual.player_cheers.texture,
-		"my_hand.png",
-		"SUCCESSではユーザー側の手とジョッキ画像を使用する"
-	)
-	expect_true(visual.player_cheers.visible, "SUCCESSではジョッキを表示する")
+	expect_true(visual.player_cheers.visible, "成功した入力でもジョッキを表示する")
 	expect_true(
 		visual.cheers_effect.visible,
 		"SUCCESSでは衝突エフェクトを表示する"
@@ -325,7 +351,13 @@ func test_result_visual_transitions(chart: RhythmChart) -> void:
 	visual.advance(100.0)
 	expect_true(
 		visual.player_cheers.visible and visual.cheers_effect.visible,
-		"SUCCESSの演出をRETURN_NORMALまで維持する"
+		"曲時刻の更新では入力表示Timerを変更しない"
+	)
+	visual.player_input_timer.stop()
+	visual.player_input_timer.timeout.emit()
+	expect_true(
+		not visual.player_cheers.visible and visual.cheers_effect.visible,
+		"手の表示終了後もSUCCESSの衝突エフェクトを維持する"
 	)
 
 	session.change_character_state(RhythmTypes.CharacterState.FAILURE)
@@ -347,6 +379,13 @@ func test_result_visual_transitions(chart: RhythmChart) -> void:
 		not visual.cheers_effect.visible,
 		"FAILUREでは衝突エフェクトを表示しない"
 	)
+	visual.show_player_input(RhythmTypes.InputType.CHEERS)
+	expect_true(
+		visual.player_cheers.visible and not visual.cheers_effect.visible,
+		"FAILURE表示中の追加入力も手だけを表示する"
+	)
+	visual.player_input_timer.stop()
+	visual.player_input_timer.timeout.emit()
 
 	session.change_character_state(RhythmTypes.CharacterState.NORMAL)
 	expect_equal(
@@ -356,7 +395,7 @@ func test_result_visual_transitions(chart: RhythmChart) -> void:
 	)
 	expect_true(
 		not visual.player_cheers.visible,
-		"RETURN_NORMALではユーザー側ジョッキを消す"
+		"入力Timer終了後はRETURN_NORMALでもジョッキを表示しない"
 	)
 
 	visual.free()
@@ -550,7 +589,9 @@ func test_opponent_scroll_transitions(chart: RhythmChart) -> void:
 	var return_time := session.timing.beat_to_seconds(3.0)
 
 	session.advance(prepare_time)
-	session.advance(cheers_time - RhythmSession.MISS_WINDOW + 0.001)
+	session.advance(
+		cheers_time - RhythmSession.EARLY_SUCCESS_WINDOW + 0.001
+	)
 	session.receive_input(RhythmTypes.InputType.CHEERS, cheers_time)
 	session.advance(return_time)
 	visual.advance(return_time)

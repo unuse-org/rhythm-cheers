@@ -38,6 +38,24 @@ func test_tutorial_uses_full_track_and_clear_sequence() -> void:
 	)
 	expect_true(tutorial.progress_panel.visible, "プレイ中は進捗を表示する")
 	expect_equal(tutorial.progress_label.text, "0 / 3", "初期進捗の表示")
+	expect_equal(
+		tutorial.music_player.volume_db,
+		6.0,
+		"単独実行時のチュートリアル音源を+6 dBにする"
+	)
+
+	tutorial.receive_sensor_input_at(RhythmTypes.InputType.CHEERS, 0.0)
+	expect_true(
+		tutorial.gameplay_visual.player_cheers.visible,
+		"判定窓外でも入力フィードバックの手を表示する"
+	)
+	expect_equal(
+		tutorial.rhythm_session.cheers_success_count,
+		0,
+		"判定窓外の手表示を成功数へ加えない"
+	)
+	tutorial.gameplay_visual.player_input_timer.stop()
+	tutorial.gameplay_visual.player_input_timer.timeout.emit()
 
 	var first_target_time := tutorial.rhythm_session.timing.beat_to_seconds(
 		SUCCESS_BEATS[0]
@@ -79,7 +97,7 @@ func test_tutorial_uses_full_track_and_clear_sequence() -> void:
 			SUCCESS_BEATS[expected_success_count - 1]
 		)
 		var input_open_time := (
-			target_time - RhythmSession.MISS_WINDOW + 0.001
+			target_time - RhythmSession.EARLY_SUCCESS_WINDOW + 0.001
 		)
 
 		tutorial.advance_tutorial(input_open_time)

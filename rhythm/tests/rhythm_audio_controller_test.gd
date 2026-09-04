@@ -13,6 +13,17 @@ func _initialize() -> void:
 
 func run_tests() -> void:
 	var controller := create_controller()
+	expect_equal(
+		controller.base_music_player.volume_db,
+		6.0,
+		"BGMを+6 dBで再生する"
+	)
+	for cue_player: AudioStreamPlayer in controller.cue_players:
+		expect_equal(
+			cue_player.volume_db,
+			6.0,
+			"Cue音を+6 dBで再生する"
+		)
 	var full_chart := RhythmChart.load_from_file(CHART_PATH)
 	var tutorial_chart := full_chart.create_section("tutorial", true)
 	expect_true(
@@ -20,12 +31,19 @@ func run_tests() -> void:
 		"Tutorial専用音源が存在する"
 	)
 	expect_true(controller.configure(tutorial_chart), "Tutorial Chartを設定する")
+	expect_near(
+		controller.calculate_audio_shortfall(12.0),
+		13.714,
+		"短いTutorial音源の不足秒数を検出する"
+	)
 	controller.cue_played.connect(_on_cue_played)
 	controller.start(0.0)
 
-	controller.set_simulated_song_time(0.64)
+	controller.set_simulated_song_time(0.0)
 	expect_equal(played_beats, [0.0], "最初のワンを0拍目で再生する")
-	controller.set_simulated_song_time(1.10)
+	controller.set_simulated_song_time(
+		controller.timing.beat_to_seconds(1.0)
+	)
 	expect_equal(played_beats, [0.0, 1.0], "2拍目のツーを再生する")
 
 	var late_time := controller.timing.beat_to_seconds(2.0) + 0.05
@@ -40,15 +58,21 @@ func run_tests() -> void:
 	)
 	expect_true(controller.configure(main_chart), "Main Chartへ切り替える")
 	expect_equal(controller.chart.cues[0]["measure"], 16, "Mainは16小節目から")
-	expect_equal(controller.chart.cues[0]["beat"], 4.0, "Main先頭Cueは4拍後")
+	expect_equal(controller.chart.cues[0]["beat"], 12.0, "Main先頭Cueは12拍後")
 	played_beats.clear()
 	played_offsets.clear()
 	controller.start(0.0)
-	var main_cue_time := controller.timing.beat_to_seconds(4.0)
+	var main_cue_time := controller.timing.beat_to_seconds(12.0)
+	expect_near(main_cue_time, 5.143, "本編先頭CueをDAWの12拍目へ合わせる")
+	expect_near(
+		controller.timing.beat_to_seconds(15.0),
+		6.429,
+		"本編最初の杯をDAWの15拍目へ合わせる"
+	)
 	controller.set_simulated_song_time(main_cue_time - 0.001)
 	expect_true(played_beats.is_empty(), "リードイン中はCueを再生しない")
 	controller.set_simulated_song_time(main_cue_time + 0.05)
-	expect_equal(played_beats.back(), 4.0, "4拍後に本番先頭Cueを再生する")
+	expect_equal(played_beats.back(), 12.0, "12拍後に本番先頭Cueを再生する")
 	expect_near(played_offsets.back(), 0.05, "Cueの遅れをoffsetへ反映する")
 
 	controller.free()

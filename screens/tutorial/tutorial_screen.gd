@@ -190,6 +190,8 @@ func receive_sensor_input_at(
 	if chart == null or track_finished or is_completed:
 		return
 
+	# 手の表示は譜面判定と独立させ、判定窓外でも入力へ反応させる。
+	gameplay_visual.show_player_input(sensor_input_type)
 	rhythm_session.receive_input(sensor_input_type, song_time)
 
 

@@ -84,3 +84,4 @@ stream = ExtResource("7_garagara")
 [node name="MusicPlayer" type="AudioStreamPlayer" parent="." unique_id=1454744974]
 unique_name_in_owner = true
 stream = ExtResource("8_1k1ey")
+parameters/looping = true

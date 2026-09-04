@@ -40,6 +40,7 @@ script = ExtResource("1_script")
 tutorial_music = ExtResource("2_music")
 
 [node name="MusicPlayer" type="AudioStreamPlayer" parent="." unique_id=1895685962]
+volume_db = 0.0
 
 [node name="RhythmSession" type="Node" parent="." unique_id=1976485822]
 script = ExtResource("3_session")

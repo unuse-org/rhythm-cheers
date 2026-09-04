@@ -10,6 +10,9 @@ const YCBCR_TO_RGB_SHADER: Shader = preload(
 )
 
 @export var preferred_size: Vector2i = Vector2i(1280, 720)
+# CameraFeed.get_name() に含まれる文字列で使用カメラを優先する。
+# 例: "C920" または macOSが表示する製品名の一部。
+@export var preferred_camera_name: String = "C920"
 
 var camera_feed: CameraFeed
 var primary_camera_texture: CameraTexture
@@ -18,6 +21,7 @@ var preview_texture: Texture2D
 var conversion_viewport: SubViewport
 var conversion_rect: ColorRect
 var configured_data_type: CameraFeed.FeedDataType = CameraFeed.FEED_NOIMAGE
+var camera_selection_message: String = ""
 
 
 func start() -> void:
@@ -103,6 +107,22 @@ static func find_preferred_format_index(
 	return best_index
 
 
+# カメラ名の部分一致で優先するFeedのindexを返す。見つからなければ-1。
+static func find_preferred_feed_index(
+	feed_names: Array[String],
+	preferred_name: String
+) -> int:
+	var normalized_name := preferred_name.strip_edges().to_lower()
+	if normalized_name.is_empty():
+		return -1
+
+	for index: int in feed_names.size():
+		if feed_names[index].to_lower().contains(normalized_name):
+			return index
+
+	return -1
+
+
 func _connect_camera_server_signals() -> void:
 	if not CameraServer.camera_feeds_updated.is_connected(
 		_on_camera_feeds_updated
@@ -140,10 +160,36 @@ func _discover_camera() -> void:
 		)
 		return
 
-	_activate_camera(feeds[0] as CameraFeed)
+	var feed_names: Array[String] = []
+	for feed: CameraFeed in feeds:
+		feed_names.append(feed.get_name())
+
+	var preferred_index := find_preferred_feed_index(
+		feed_names,
+		preferred_camera_name
+	)
+	if preferred_index >= 0:
+		_activate_camera(
+			feeds[preferred_index] as CameraFeed,
+			"指定カメラを選択しました"
+		)
+		return
+
+	var fallback_feed := feeds[0] as CameraFeed
+	var fallback_message := "先頭のカメラを選択しました"
+	if not preferred_camera_name.strip_edges().is_empty():
+		var detected_names := ", ".join(PackedStringArray(feed_names))
+		fallback_message = (
+			"「%s」が見つからないため先頭のカメラを選択しました（検出: %s）"
+			% [preferred_camera_name, detected_names]
+		)
+	_activate_camera(fallback_feed, fallback_message)
 
 
-func _activate_camera(feed: CameraFeed) -> void:
+func _activate_camera(
+	feed: CameraFeed,
+	selection_message: String = ""
+) -> void:
 	if feed == null:
 		_set_state(State.ERROR, "カメラ情報を取得できませんでした。")
 		return
@@ -153,6 +199,7 @@ func _activate_camera(feed: CameraFeed) -> void:
 
 	_release_camera()
 	camera_feed = feed
+	camera_selection_message = selection_message
 
 	# set_formatの既定動作でRGBへ変換し、プレビューと静止画を共通化する。
 	var format_index := find_preferred_format_index(
@@ -278,6 +325,7 @@ func _release_camera() -> void:
 	preview_texture = null
 	configured_data_type = CameraFeed.FEED_NOIMAGE
 	camera_feed = null
+	camera_selection_message = ""
 
 
 func _release_conversion_viewport() -> void:
@@ -323,9 +371,10 @@ func _on_camera_frame_changed() -> void:
 	if state == State.DISCOVERING:
 		_set_state(
 			State.READY,
-			"%s の準備ができました（%s）。" % [
+			"%s の準備ができました（%s / %s）。" % [
 				camera_feed.get_name(),
 				_get_data_type_name(data_type),
+				camera_selection_message,
 			]
 		)
 

@@ -56,6 +56,30 @@ func _exit_tree() -> void:
 		active_sensor_provider.stop()
 
 
+# 開発中はどの画面でもEscapeでタイトルへ戻れるようにする。
+# 各画面の入力処理より先に受け取り、撮影・演出・ゲーム進行を中断する。
+func _input(event: InputEvent) -> void:
+	if (
+		event is InputEventKey
+		and event.pressed
+		and not event.echo
+		and event.keycode == KEY_ESCAPE
+	):
+		return_to_title_for_development()
+		get_viewport().set_input_as_handled()
+
+
+# 開発者用の強制帰還。通常のResult完了とは異なり、人数は加算しない。
+func return_to_title_for_development() -> void:
+	if transition_locked or current_screen_id == SceneFlow.ScreenId.TITLE:
+		return
+
+	rhythm_audio_controller.stop()
+	run_context.clear()
+	run_context = RunContext.new()
+	show_screen(SceneFlow.ScreenId.TITLE)
+
+
 # SceneFlowが定義するシーンへ現在画面を差し替える。
 func show_screen(screen_id: SceneFlow.ScreenId) -> void:
 	transition_locked = true
